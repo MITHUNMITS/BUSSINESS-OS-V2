@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block body %}
+<main id="main" class="bos-shell py-8">
+  <div class="mb-6 flex items-center justify-between">
+    <div>
+      <p class="text-sm text-base-content/60">{% trans "Platform Superadmin" %}</p>
+      <h1 class="text-2xl font-semibold">{% block page_title %}{% trans "Overview" %}{% endblock %}</h1>
+    </div>
+    <nav class="flex gap-2" aria-label="{% trans 'Platform navigation' %}">
+      <a class="btn btn-sm btn-outline" href="{% url 'platform-overview' %}">{% trans "Overview" %}</a>
+      <a class="btn btn-sm btn-outline" href="{% url 'platform-modules' %}">{% trans "Modules" %}</a>
+      <a class="btn btn-sm btn-outline" href="{% url 'platform-organizations' %}">{% trans "Organizations" %}</a>
+    </nav>
+  </div>
+  {% block content %}{% endblock %}
+</main>
+{% endblock %}
+

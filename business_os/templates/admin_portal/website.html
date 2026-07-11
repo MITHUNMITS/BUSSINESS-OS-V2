@@ -1,0 +1,21 @@
+{% extends "admin_portal/base.html" %}
+{% load i18n %}
+
+{% block page_title %}{% trans "Website" %}{% endblock %}
+
+{% block content %}
+<section class="rounded-lg border border-base-300 bg-base-100 p-5">
+  <h3 class="font-semibold">{% trans "Published pages" %}</h3>
+  <div class="mt-4 grid gap-3 md:grid-cols-2">
+    {% for page in pages %}
+      <article class="rounded border border-base-300 p-4">
+        <p class="font-medium">{{ page.title }}</p>
+        <p class="text-sm text-base-content/60">/{{ page.slug }}</p>
+      </article>
+    {% empty %}
+      {% include "components/empty_state.html" with title="No visible pages" message="Pages appear here after the website is provisioned." %}
+    {% endfor %}
+  </div>
+</section>
+{% endblock %}
+

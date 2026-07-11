@@ -1,0 +1,8 @@
+<section class="rounded-lg border border-base-300 bg-base-100 p-6 text-center" data-testid="empty-state">
+  <h2 class="text-lg font-semibold">{{ title }}</h2>
+  <p class="mt-2 text-sm text-base-content/70">{{ message }}</p>
+  {% if action_label %}
+    <a class="btn btn-primary mt-4" href="{{ action_url }}">{{ action_label }}</a>
+  {% endif %}
+</section>
+

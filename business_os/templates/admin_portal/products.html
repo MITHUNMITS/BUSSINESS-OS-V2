@@ -1,0 +1,35 @@
+{% extends "admin_portal/base.html" %}
+{% load i18n %}
+
+{% block page_title %}{% trans "Products" %}{% endblock %}
+
+{% block content %}
+{% if products %}
+  <div class="rounded-lg border border-base-300 bg-base-100">
+    <div class="border-b border-base-300 p-4">
+      <label class="input input-bordered flex items-center gap-2">
+        <span class="text-base-content/50">{% trans "Search" %}</span>
+        <input class="grow" type="search" aria-label="{% trans 'Search products' %}">
+      </label>
+    </div>
+    <div class="overflow-x-auto">
+      <table class="table">
+        <thead><tr><th>{% trans "Product" %}</th><th>{% trans "Code" %}</th><th>{% trans "Price" %}</th><th>{% trans "Status" %}</th></tr></thead>
+        <tbody>
+        {% for product in products %}
+          <tr>
+            <td>{{ product.name }}</td>
+            <td>{{ product.code }}</td>
+            <td>{{ product.currency }} {{ product.display_price }}</td>
+            <td>{% include "components/status_badge.html" with status=product.status %}</td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+{% else %}
+  {% include "components/empty_state.html" with title="No products yet" message="Create products with variants and stock before publishing ecommerce." action_label="Add product" action_url="#" %}
+{% endif %}
+{% endblock %}
+

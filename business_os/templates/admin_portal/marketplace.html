@@ -1,0 +1,27 @@
+{% extends "admin_portal/base.html" %}
+{% load i18n %}
+
+{% block page_title %}{% trans "Marketplace" %}{% endblock %}
+
+{% block content %}
+<div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+  {% for module in modules %}
+    <article class="rounded-lg border border-base-300 bg-base-100 p-5">
+      <div class="flex items-start justify-between gap-3">
+        <div>
+          <h3 class="font-semibold">{{ module.name }}</h3>
+          <p class="mt-2 text-sm text-base-content/70">{{ module.description }}</p>
+        </div>
+        {% include "components/status_badge.html" with status=module.release_status %}
+      </div>
+      <div class="mt-4 flex gap-2">
+        <button class="btn btn-sm btn-primary" type="button">{% trans "Customize" %}</button>
+        <button class="btn btn-sm btn-outline" type="button">{% trans "Compare" %}</button>
+      </div>
+    </article>
+  {% empty %}
+    {% include "components/empty_state.html" with title="No modules visible" message="Platform Superadmin must publish modules for this country." %}
+  {% endfor %}
+</div>
+{% endblock %}
+

@@ -1,0 +1,29 @@
+{% extends "admin_portal/base.html" %}
+{% load i18n %}
+
+{% block page_title %}{% trans "Orders" %}{% endblock %}
+
+{% block content %}
+{% if orders %}
+  <div class="rounded-lg border border-base-300 bg-base-100">
+    <div class="overflow-x-auto">
+      <table class="table">
+        <thead><tr><th>{% trans "Order" %}</th><th>{% trans "Customer" %}</th><th>{% trans "Total" %}</th><th>{% trans "Status" %}</th></tr></thead>
+        <tbody>
+        {% for order in orders %}
+          <tr>
+            <td>{{ order.order_number }}</td>
+            <td>{{ order.customer_email }}</td>
+            <td>{{ order.currency }} {{ order.grand_total }}</td>
+            <td>{% include "components/status_badge.html" with status=order.order_status %}</td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+{% else %}
+  {% include "components/empty_state.html" with title="No orders yet" message="Orders will appear after customers complete checkout." %}
+{% endif %}
+{% endblock %}
+

@@ -1,0 +1,19 @@
+{% load i18n static %}
+<!doctype html>
+<html lang="{{ request.LANGUAGE_CODE|default:'en' }}" data-theme="businessos">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Business OS{% endblock %}</title>
+  <link rel="stylesheet" href="{% static 'css/businessos.generated.css' %}">
+  <link rel="stylesheet" href="{% static 'css/businessos.fallback.css' %}">
+  <script defer src="https://unpkg.com/htmx.org@2.0.4"></script>
+  <script defer src="https://unpkg.com/alpinejs@3.14.8/dist/cdn.min.js"></script>
+</head>
+<body class="bos-page">
+  <a class="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded focus:bg-base-100 focus:p-3" href="#main">
+    {% trans "Skip to content" %}
+  </a>
+  {% block body %}{% endblock %}
+</body>
+</html>

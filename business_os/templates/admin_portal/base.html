@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block body %}
+<div class="min-h-screen lg:flex">
+  <aside class="border-r border-base-300 bg-base-100 lg:w-72">
+    <div class="flex items-center justify-between border-b border-base-300 p-4">
+      <div>
+        <p class="text-sm text-base-content/60">{% trans "Business OS" %}</p>
+        <h1 class="text-lg font-semibold">{{ organization.name }}</h1>
+      </div>
+      <span class="badge badge-primary">{{ organization.default_currency }}</span>
+    </div>
+    <nav class="space-y-1 p-3" aria-label="{% trans 'Business admin' %}">
+      {% for item in navigation %}
+        <a class="btn btn-ghost w-full justify-start" href="#{{ item.url_name }}" data-testid="nav-{{ item.url_name }}">
+          {{ item.label }}
+        </a>
+      {% endfor %}
+    </nav>
+  </aside>
+  <div class="min-w-0 flex-1">
+    <header class="sticky top-0 z-20 border-b border-base-300 bg-base-100/95 backdrop-blur">
+      <div class="bos-shell flex min-h-16 items-center justify-between gap-4">
+        <div>
+          <p class="text-sm text-base-content/60">{% block eyebrow %}{% trans "Business Admin" %}{% endblock %}</p>
+          <h2 class="text-xl font-semibold">{% block page_title %}{% trans "Dashboard" %}{% endblock %}</h2>
+        </div>
+        <div class="flex items-center gap-2">
+          <button class="btn btn-sm btn-outline" type="button">{% trans "Help" %}</button>
+          <button class="btn btn-sm btn-primary" type="button">{% trans "New" %}</button>
+        </div>
+      </div>
+    </header>
+    <main id="main" class="bos-shell py-6">
+      {% block content %}{% endblock %}
+    </main>
+  </div>
+</div>
+{% endblock %}
+

@@ -1,0 +1,25 @@
+{% extends "platform_portal/base.html" %}
+{% load i18n %}
+
+{% block page_title %}{% trans "Organizations" %}{% endblock %}
+
+{% block content %}
+<div class="rounded-lg border border-base-300 bg-base-100">
+  <div class="overflow-x-auto">
+    <table class="table">
+      <thead><tr><th>{% trans "Name" %}</th><th>{% trans "Country" %}</th><th>{% trans "Currency" %}</th><th>{% trans "Status" %}</th></tr></thead>
+      <tbody>
+      {% for organization in organizations %}
+        <tr>
+          <td>{{ organization.name }}</td>
+          <td>{{ organization.country }}</td>
+          <td>{{ organization.default_currency }}</td>
+          <td>{% include "components/status_badge.html" with status=organization.status %}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
+

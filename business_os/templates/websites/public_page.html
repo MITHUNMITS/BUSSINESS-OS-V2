@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{{ page.title }} | {{ website.name }}{% endblock %}
+
+{% block body %}
+<main id="main" class="bos-shell py-10">
+  <a class="link" href="{% url 'public-home' website.slug %}">{% trans "Back home" %}</a>
+  <h1 class="mt-6 text-3xl font-semibold">{{ page.title }}</h1>
+  <div class="mt-6 space-y-4">
+    {% for section in page.sections.all %}
+      <section class="rounded-lg border border-base-300 bg-base-100 p-5">
+        <p class="text-sm uppercase tracking-wide text-base-content/50">{{ section.section_type }}</p>
+        <pre class="mt-3 whitespace-pre-wrap text-sm">{{ section.content }}</pre>
+      </section>
+    {% empty %}
+      {% include "components/empty_state.html" with title="Page content is not published yet" message="This page exists and is ready for website sections." %}
+    {% endfor %}
+  </div>
+</main>
+{% endblock %}
+
