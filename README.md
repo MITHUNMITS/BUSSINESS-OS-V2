@@ -49,6 +49,17 @@ The Compose setup uses container service names:
 
 Keep `.env.example` as the local-host reference. `docker-compose.yml` overrides `DATABASE_URL` and `REDIS_URL` inside containers so Django connects to the Compose services correctly.
 
+## Local Host Surfaces
+
+In development, canonical surfaces also work on localhost subdomains:
+
+- Business Admin: `http://app.localhost:8000/o/<organization_slug>/dashboard/`
+- Platform Superadmin: `http://platform.localhost:8000/organizations/`
+- API: `http://api.localhost:8000/api/v1/health`
+- Generated public site: `http://<site_slug>.localhost:8000/`
+
+Plain `http://localhost:8000/` remains the developer-friendly local entrypoint.
+
 ## Frontend Assets
 
 The committed Tailwind source is `business_os/static/css/businessos.css`.

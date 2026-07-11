@@ -82,25 +82,21 @@ def resolve_host(host: str) -> HostResolution:
 
     if not normalized:
         return HostResolution(host=normalized, surface="unknown")
-    if normalized in LOCAL_HOSTS or normalized.endswith(".localhost"):
+    if normalized in LOCAL_HOSTS:
         return HostResolution(host=normalized, surface="local")
     if normalized == root_domain:
         return HostResolution(host=normalized, surface="marketing")
+    if normalized.endswith(".localhost"):
+        return resolve_subdomain_host(
+            host=normalized,
+            subdomain=normalized.removesuffix(".localhost"),
+        )
 
     reserved_suffix = f".{root_domain}"
     if normalized.endswith(reserved_suffix):
-        subdomain = normalized[: -len(reserved_suffix)]
-        if subdomain in RESERVED_SUBDOMAINS:
-            return HostResolution(host=normalized, surface=RESERVED_SUBDOMAINS[subdomain])
-        if subdomain.endswith(".preview"):
-            return HostResolution(host=normalized, surface="preview", site_slug=subdomain)
-
-        website = Website.objects.filter(slug=subdomain).first()
-        return HostResolution(
+        return resolve_subdomain_host(
             host=normalized,
-            surface="generated_site" if website else "unknown_generated_site",
-            website=website,
-            site_slug=subdomain,
+            subdomain=normalized[: -len(reserved_suffix)],
         )
 
     domain = (
@@ -121,6 +117,21 @@ def resolve_host(host: str) -> HostResolution:
         )
 
     return HostResolution(host=normalized, surface="unknown")
+
+
+def resolve_subdomain_host(*, host: str, subdomain: str) -> HostResolution:
+    if subdomain in RESERVED_SUBDOMAINS:
+        return HostResolution(host=host, surface=RESERVED_SUBDOMAINS[subdomain])
+    if subdomain.endswith(".preview"):
+        return HostResolution(host=host, surface="preview", site_slug=subdomain)
+
+    website = Website.objects.filter(slug=subdomain).first()
+    return HostResolution(
+        host=host,
+        surface="generated_site" if website else "unknown_generated_site",
+        website=website,
+        site_slug=subdomain,
+    )
 
 
 def public_host_for_website(website: Website) -> str:

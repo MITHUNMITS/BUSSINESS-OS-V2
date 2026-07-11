@@ -24,6 +24,8 @@ Do not treat this as an ecommerce-only project. Business OS is a modular all-in-
 - `WebsiteDomain` exists for generated, custom, and preview domain lifecycle foundation.
 - Canonical host guard foundation is implemented:
   - local host keeps developer routes.
+  - localhost subdomains map to the same canonical surfaces for local browser testing.
+  - `app.localhost:8000`, `platform.localhost:8000`, `api.localhost:8000`, and `<site_slug>.localhost:8000` are supported.
   - `app.<PLATFORM_ROOT_DOMAIN>` uses canonical business admin routes like `/o/<org>/dashboard/`.
   - `platform.<PLATFORM_ROOT_DOMAIN>` uses canonical platform routes like `/organizations/`.
   - `api.<PLATFORM_ROOT_DOMAIN>` allows `/api/v1/`.

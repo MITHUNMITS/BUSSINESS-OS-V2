@@ -175,3 +175,83 @@ def test_platform_host_allows_platform_staff_on_canonical_routes():
 
     assert response.status_code == 200
     assert response.headers["X-BusinessOS-Surface"] == "platform_admin"
+
+
+@pytest.mark.django_db
+@override_settings(
+    PLATFORM_ROOT_DOMAIN="businessos.local",
+    ALLOWED_HOSTS=[".localhost", ".businessos.local"],
+)
+def test_platform_localhost_resolves_as_platform_admin():
+    user_model = get_user_model()
+    user = user_model.objects.create_user(
+        username="platform-local",
+        email="platform-local@example.com",
+        password="not-used",
+        is_platform_staff=True,
+    )
+    client = Client(HTTP_HOST="platform.localhost")
+    client.force_login(user)
+
+    response = client.get("/organizations/")
+
+    assert response.status_code == 200
+    assert response.headers["X-BusinessOS-Surface"] == "platform_admin"
+
+
+@pytest.mark.django_db
+@override_settings(
+    PLATFORM_ROOT_DOMAIN="businessos.local",
+    ALLOWED_HOSTS=[".localhost", ".businessos.local"],
+)
+def test_app_localhost_resolves_as_business_admin():
+    user_model = get_user_model()
+    user = user_model.objects.create_user(
+        username="owner-local",
+        email="owner-local@example.com",
+        password="not-used",
+    )
+    organization = Organization.objects.create(slug="nova", name="Nova", default_currency="AED")
+    Membership.objects.create(
+        organization=organization,
+        user=user,
+        is_owner=True,
+    )
+    client = Client(HTTP_HOST="app.localhost")
+    client.force_login(user)
+
+    response = client.get("/o/nova/dashboard/")
+
+    assert response.status_code == 200
+    assert response.headers["X-BusinessOS-Surface"] == "business_admin"
+
+
+@pytest.mark.django_db
+@override_settings(
+    PLATFORM_ROOT_DOMAIN="businessos.local",
+    ALLOWED_HOSTS=[".localhost", ".businessos.local"],
+)
+def test_api_localhost_resolves_as_api():
+    client = Client(HTTP_HOST="api.localhost")
+
+    response = client.get("/api/v1/health")
+
+    assert response.status_code == 200
+    assert response.headers["X-BusinessOS-Surface"] == "api"
+
+
+@pytest.mark.django_db
+@override_settings(
+    PLATFORM_ROOT_DOMAIN="businessos.local",
+    ALLOWED_HOSTS=[".localhost", ".businessos.local"],
+)
+def test_generated_site_localhost_resolves_as_public_website():
+    organization = Organization.objects.create(slug="nova", name="Nova", default_currency="AED")
+    provision_default_website(organization=organization)
+    client = Client(HTTP_HOST="nova.localhost")
+
+    response = client.get("/")
+
+    assert response.status_code == 200
+    assert response.headers["X-BusinessOS-Surface"] == "generated_site"
+    assert b"Nova" in response.content

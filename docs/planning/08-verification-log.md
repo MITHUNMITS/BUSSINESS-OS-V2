@@ -80,6 +80,22 @@ Final verification for canonical host guard:
 - `curl.exe -I -H "Host: nova-boutique.businessos.local" http://localhost:8000/sites/nova-boutique/`: passed, HTTP 404.
 - `curl.exe -I -H "Host: platform.businessos.local" http://localhost:8000/organizations/`: passed, HTTP 403 for unauthenticated platform access.
 
+Localhost subdomain support:
+
+- Added localhost subdomain resolution for reserved platform surfaces and generated public websites.
+- `app.localhost` resolves as `business_admin`.
+- `platform.localhost` resolves as `platform_admin`.
+- `api.localhost` resolves as `api`.
+- `<site_slug>.localhost` resolves as `generated_site` when the website exists.
+- `docker compose run --rm web sh docker/entrypoint.sh pytest tests/integration/test_domain_routing.py`: passed, 16 tests.
+- `docker compose run --rm web sh docker/entrypoint.sh ruff check business_os/apps/websites/domain_services.py tests/integration/test_domain_routing.py`: passed.
+- `docker compose run --rm web sh docker/entrypoint.sh python manage.py check`: passed.
+- `docker compose run --rm web sh docker/entrypoint.sh pytest`: passed, 21 tests.
+- `docker compose run --rm web sh docker/entrypoint.sh ruff check .`: passed.
+- `curl.exe -s -i -H "Host: api.localhost" http://localhost:8000/api/v1/health`: passed, HTTP 200 with `X-BusinessOS-Surface: api`.
+- `curl.exe -I -H "Host: platform.localhost" http://localhost:8000/organizations/`: passed, HTTP 403 with `X-BusinessOS-Surface: platform_admin`.
+- `curl.exe -I -H "Host: nova-boutique.localhost" http://localhost:8000/`: passed, HTTP 200 with `X-BusinessOS-Surface: generated_site`.
+
 Follow-up domain pass:
 
 - Added `WebsiteDomain` lifecycle model.
