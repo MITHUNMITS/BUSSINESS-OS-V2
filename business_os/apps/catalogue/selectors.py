@@ -9,4 +9,3 @@ def visible_offerings_for_organization(organization):
         .prefetch_related("variants", "images")
         .order_by("name")
     )
-

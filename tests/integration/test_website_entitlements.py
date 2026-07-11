@@ -21,4 +21,3 @@ def test_website_pages_follow_entitlements():
     visible_slugs = {page.slug for page in visible_pages_for_website(website=website)}
     assert "shop" in visible_slugs
     assert "cart" in visible_slugs
-

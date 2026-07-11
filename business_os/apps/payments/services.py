@@ -23,7 +23,8 @@ def create_manual_payment_intent(
             "amount": amount,
             "currency": currency,
             "status": PaymentIntent.IntentStatus.SUCCEEDED
-            if provider.provider_type in {PaymentProvider.ProviderType.COD, PaymentProvider.ProviderType.MANUAL}
+            if provider.provider_type
+            in {PaymentProvider.ProviderType.COD, PaymentProvider.ProviderType.MANUAL}
             else PaymentIntent.IntentStatus.REQUIRES_PAYMENT,
             "metadata": metadata or {},
         },
@@ -38,4 +39,3 @@ def create_manual_payment_intent(
             status="succeeded",
         )
     return intent
-

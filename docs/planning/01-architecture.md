@@ -1,10 +1,10 @@
-# Business OS Ecommerce Architecture
+# Business OS Modular Platform Architecture
 
 ## Goal
 
-Business OS is a modular Django monolith. Every module remains deployed, and organization entitlements decide which admin routes, public website sections, APIs, background jobs, and reports are available.
+Business OS is a modular Django monolith for websites, operations, marketplace subscriptions, entitlements, ecommerce, appointments, inventory, CRM, workforce, payments, communications, marketing, analytics, AI, and future industry packs. Every module remains deployed, and organization entitlements decide which admin routes, public website sections, APIs, background jobs, and reports are available.
 
-The first production target is ecommerce for India and UAE businesses, with a boutique/fashion launch template that does not hard-code the domain to dresses.
+The first production slice is ecommerce for India and UAE businesses, with a boutique/fashion launch template that does not hard-code the platform to dresses or ecommerce-only businesses.
 
 ## Architectural Rules
 
@@ -15,6 +15,23 @@ The first production target is ecommerce for India and UAE businesses, with a bo
 - Keep business logic out of templates, model methods, and view glue where practical.
 - Use Django forms, auth, permissions, sessions, messages, migrations, i18n, transactions, constraints, and admin support.
 - Keep module boundaries strong enough for future service extraction.
+- Treat ecommerce as the first paid/production module set, not the identity of the whole product.
+- Keep appointments, reservations, POS, CRM, workforce, communications, marketing, automation, documents, assets, analytics, AI, and industry extensions represented as future modules behind the same registry and entitlement contracts.
+
+## Canonical Surfaces
+
+`PLATFORM_ROOT_DOMAIN` controls the domain map. The target production surfaces are:
+
+- Marketing: root domain.
+- Business Admin: `app.<platform-root-domain>`.
+- Platform Superadmin: `platform.<platform-root-domain>`.
+- API: `api.<platform-root-domain>`.
+- Docs and status: reserved subdomains.
+- Generated public websites: `{site_slug}.<platform-root-domain>`.
+- Custom public websites: customer-owned domains after verification.
+- Preview: preview subdomains or tokenized preview links.
+
+Public website hosts must never expose Business Admin, Platform Superadmin, Django admin, or privileged API routes.
 
 ## First Release Slice
 
@@ -34,4 +51,3 @@ Initial supported countries:
 - India: INR, Asia/Kolkata.
 
 The data model keeps currency, timezone, tax labels, and shipping zones configurable so additional countries can be added later.
-

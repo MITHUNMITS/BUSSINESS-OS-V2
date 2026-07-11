@@ -19,4 +19,3 @@ admin.site.register(ModulePrice)
 admin.site.register(ModuleLimit)
 admin.site.register(Bundle)
 admin.site.register(BundleItem)
-

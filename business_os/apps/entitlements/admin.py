@@ -4,4 +4,3 @@ from business_os.apps.entitlements.models import OrganizationEntitlement, UsageL
 
 admin.site.register(OrganizationEntitlement)
 admin.site.register(UsageLimit)
-

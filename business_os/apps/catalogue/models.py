@@ -7,7 +7,9 @@ from business_os.apps.core.models import RecordStatus, TenantOwnedModel
 
 
 class Category(TenantOwnedModel):
-    parent = models.ForeignKey("self", on_delete=models.PROTECT, null=True, blank=True, related_name="children")
+    parent = models.ForeignKey(
+        "self", on_delete=models.PROTECT, null=True, blank=True, related_name="children"
+    )
     name = models.CharField(max_length=160)
     slug = models.SlugField(max_length=160)
     description = models.TextField(blank=True)
@@ -15,7 +17,9 @@ class Category(TenantOwnedModel):
 
     class Meta:
         constraints = [
-            models.UniqueConstraint(fields=["organization", "slug"], name="unique_category_slug_per_org")
+            models.UniqueConstraint(
+                fields=["organization", "slug"], name="unique_category_slug_per_org"
+            )
         ]
         ordering = ["sort_order", "name"]
 
@@ -37,7 +41,9 @@ class Collection(TenantOwnedModel):
 
     class Meta:
         constraints = [
-            models.UniqueConstraint(fields=["organization", "slug"], name="unique_collection_slug_per_org")
+            models.UniqueConstraint(
+                fields=["organization", "slug"], name="unique_collection_slug_per_org"
+            )
         ]
 
     def __str__(self) -> str:
@@ -50,14 +56,20 @@ class Offering(TenantOwnedModel):
         SERVICE = "service", _("Service")
         DIGITAL = "digital", _("Digital")
 
-    offering_type = models.CharField(max_length=40, choices=OfferingType.choices, default=OfferingType.PRODUCT)
+    offering_type = models.CharField(
+        max_length=40, choices=OfferingType.choices, default=OfferingType.PRODUCT
+    )
     name = models.CharField(max_length=180)
     slug = models.SlugField(max_length=180)
     code = models.CharField(max_length=80)
     summary = models.CharField(max_length=255, blank=True)
     description = models.TextField(blank=True)
-    category = models.ForeignKey(Category, on_delete=models.PROTECT, null=True, blank=True, related_name="offerings")
-    collections = models.ManyToManyField(Collection, through="CollectionItem", related_name="offerings", blank=True)
+    category = models.ForeignKey(
+        Category, on_delete=models.PROTECT, null=True, blank=True, related_name="offerings"
+    )
+    collections = models.ManyToManyField(
+        Collection, through="CollectionItem", related_name="offerings", blank=True
+    )
     base_price = models.DecimalField(max_digits=12, decimal_places=2)
     sale_price = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
     currency = models.CharField(max_length=3, default="AED")
@@ -75,8 +87,12 @@ class Offering(TenantOwnedModel):
 
     class Meta:
         constraints = [
-            models.UniqueConstraint(fields=["organization", "slug"], name="unique_offering_slug_per_org"),
-            models.UniqueConstraint(fields=["organization", "code"], name="unique_offering_code_per_org"),
+            models.UniqueConstraint(
+                fields=["organization", "slug"], name="unique_offering_slug_per_org"
+            ),
+            models.UniqueConstraint(
+                fields=["organization", "code"], name="unique_offering_code_per_org"
+            ),
         ]
         indexes = [
             models.Index(fields=["organization", "status", "visible_on_website"]),
@@ -93,7 +109,9 @@ class Offering(TenantOwnedModel):
 
 class CollectionItem(TenantOwnedModel):
     collection = models.ForeignKey(Collection, on_delete=models.CASCADE, related_name="items")
-    offering = models.ForeignKey(Offering, on_delete=models.CASCADE, related_name="collection_items")
+    offering = models.ForeignKey(
+        Offering, on_delete=models.CASCADE, related_name="collection_items"
+    )
     sort_order = models.PositiveIntegerField(default=0)
 
     class Meta:
@@ -112,7 +130,9 @@ class OptionDefinition(TenantOwnedModel):
 
     class Meta:
         constraints = [
-            models.UniqueConstraint(fields=["organization", "code"], name="unique_option_code_per_org")
+            models.UniqueConstraint(
+                fields=["organization", "code"], name="unique_option_code_per_org"
+            )
         ]
 
     def __str__(self) -> str:
@@ -128,7 +148,9 @@ class OptionValue(TenantOwnedModel):
 
     class Meta:
         constraints = [
-            models.UniqueConstraint(fields=["organization", "option", "value"], name="unique_option_value")
+            models.UniqueConstraint(
+                fields=["organization", "option", "value"], name="unique_option_value"
+            )
         ]
         ordering = ["sort_order", "label"]
 
@@ -144,13 +166,17 @@ class OfferingVariant(TenantOwnedModel):
 
     class Meta:
         constraints = [
-            models.UniqueConstraint(fields=["organization", "sku"], name="unique_variant_sku_per_org")
+            models.UniqueConstraint(
+                fields=["organization", "sku"], name="unique_variant_sku_per_org"
+            )
         ]
         indexes = [models.Index(fields=["organization", "offering"])]
 
     @property
     def price(self):
-        return self.price_override if self.price_override is not None else self.offering.display_price
+        return (
+            self.price_override if self.price_override is not None else self.offering.display_price
+        )
 
     def __str__(self) -> str:
         return self.title or self.sku
@@ -165,10 +191,11 @@ class OfferingImage(TenantOwnedModel):
         blank=True,
         related_name="images",
     )
-    asset = models.ForeignKey("core.MediaAsset", on_delete=models.PROTECT, related_name="offering_images")
+    asset = models.ForeignKey(
+        "core.MediaAsset", on_delete=models.PROTECT, related_name="offering_images"
+    )
     sort_order = models.PositiveIntegerField(default=0)
     is_primary = models.BooleanField(default=False)
 
     class Meta:
         ordering = ["sort_order"]
-

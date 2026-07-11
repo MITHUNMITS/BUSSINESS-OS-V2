@@ -1,12 +1,16 @@
 from __future__ import annotations
 
-from django.db import models
 from datetime import timedelta
 
+from django.db import models
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
 from business_os.apps.core.models import TenantOwnedModel
+
+
+def default_reservation_expiry():
+    return timezone.now() + timedelta(minutes=20)
 
 
 class InventoryItem(TenantOwnedModel):
@@ -21,7 +25,9 @@ class InventoryItem(TenantOwnedModel):
 
     class Meta:
         constraints = [
-            models.UniqueConstraint(fields=["organization", "sku"], name="unique_inventory_sku_per_org")
+            models.UniqueConstraint(
+                fields=["organization", "sku"], name="unique_inventory_sku_per_org"
+            )
         ]
 
     def __str__(self) -> str:
@@ -36,7 +42,9 @@ class InventoryLevel(TenantOwnedModel):
 
     class Meta:
         constraints = [
-            models.UniqueConstraint(fields=["organization", "facility", "item"], name="unique_inventory_level")
+            models.UniqueConstraint(
+                fields=["organization", "facility", "item"], name="unique_inventory_level"
+            )
         ]
 
     @property
@@ -60,7 +68,7 @@ class InventoryReservation(TenantOwnedModel):
         db_index=True,
     )
     idempotency_key = models.CharField(max_length=120, blank=True, db_index=True)
-    expires_at = models.DateTimeField(default=lambda: timezone.now() + timedelta(minutes=20))
+    expires_at = models.DateTimeField(default=default_reservation_expiry)
     confirmed_at = models.DateTimeField(null=True, blank=True)
     released_at = models.DateTimeField(null=True, blank=True)
 

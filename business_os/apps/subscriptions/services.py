@@ -1,8 +1,8 @@
 from __future__ import annotations
 
+from collections.abc import Iterable
 from datetime import timedelta
 from decimal import Decimal
-from typing import Iterable
 
 from django.db import transaction
 from django.utils import timezone
@@ -45,7 +45,9 @@ def activate_subscription(
             unit_price=Decimal("0.00"),
             price_snapshot={"source": "manual-or-free"},
         )
-        grant_entitlement(organization=organization, code=f"{module.code}.enabled", source="subscription")
+        grant_entitlement(
+            organization=organization, code=f"{module.code}.enabled", source="subscription"
+        )
 
     for capability in capability_list:
         module = module_list[0] if module_list else None

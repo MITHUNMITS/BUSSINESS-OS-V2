@@ -42,7 +42,9 @@ class SubscriptionItem(TenantOwnedModel):
         on_delete=models.CASCADE,
         related_name="items",
     )
-    module = models.ForeignKey("marketplace.Module", on_delete=models.PROTECT, related_name="subscription_items")
+    module = models.ForeignKey(
+        "marketplace.Module", on_delete=models.PROTECT, related_name="subscription_items"
+    )
     capability = models.ForeignKey(
         "marketplace.Capability",
         on_delete=models.PROTECT,
@@ -88,7 +90,9 @@ class PlatformBillingInvoice(TenantOwnedModel):
 
 
 class PlatformBillingInvoiceLine(TenantOwnedModel):
-    invoice = models.ForeignKey(PlatformBillingInvoice, on_delete=models.CASCADE, related_name="lines")
+    invoice = models.ForeignKey(
+        PlatformBillingInvoice, on_delete=models.CASCADE, related_name="lines"
+    )
     description = models.CharField(max_length=255)
     quantity = models.DecimalField(max_digits=12, decimal_places=2, default=1)
     unit_price = models.DecimalField(max_digits=12, decimal_places=2)
@@ -97,11 +101,12 @@ class PlatformBillingInvoiceLine(TenantOwnedModel):
 
 
 class PlatformBillingPayment(TenantOwnedModel):
-    invoice = models.ForeignKey(PlatformBillingInvoice, on_delete=models.PROTECT, related_name="payments")
+    invoice = models.ForeignKey(
+        PlatformBillingInvoice, on_delete=models.PROTECT, related_name="payments"
+    )
     provider = models.CharField(max_length=80)
     external_reference = models.CharField(max_length=160, blank=True, db_index=True)
     amount = models.DecimalField(max_digits=12, decimal_places=2)
     currency = models.CharField(max_length=3)
     status = models.CharField(max_length=40, default="pending", db_index=True)
     idempotency_key = models.CharField(max_length=120, blank=True, db_index=True)
-

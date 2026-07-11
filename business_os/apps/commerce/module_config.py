@@ -18,4 +18,3 @@ MODULE_CONFIG = {
         {"type": "page", "slug": "checkout", "capability": "commerce.checkout"},
     ],
 }
-

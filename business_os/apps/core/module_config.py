@@ -8,4 +8,3 @@ MODULE_CONFIG = {
     "navigation": [],
     "website_contributions": [],
 }
-

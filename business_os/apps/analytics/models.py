@@ -18,4 +18,3 @@ class AnalyticsEvent(TenantOwnedModel):
             models.Index(fields=["organization", "event_type", "occurred_at"]),
             models.Index(fields=["subject_type", "subject_id"]),
         ]
-

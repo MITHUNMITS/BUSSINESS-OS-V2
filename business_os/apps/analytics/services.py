@@ -20,4 +20,3 @@ def track_event(
         subject_id=subject_id,
         metadata=metadata or {},
     )
-

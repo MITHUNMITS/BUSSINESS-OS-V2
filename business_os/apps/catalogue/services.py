@@ -36,4 +36,3 @@ def create_product(
         created_by=created_by,
     )
     return product
-

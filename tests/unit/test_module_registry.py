@@ -8,4 +8,3 @@ def test_module_registry_loads_first_release_modules():
     assert "catalogue" in modules
     assert "commerce" in modules
     assert "payments" in modules
-

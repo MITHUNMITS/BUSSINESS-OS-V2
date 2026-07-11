@@ -62,4 +62,3 @@ def onboard_organization(
         target=AuditTarget("organization", str(organization.id)),
     )
     return OrganizationOnboardingResult(organization, facility, membership)
-

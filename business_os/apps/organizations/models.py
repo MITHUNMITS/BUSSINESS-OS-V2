@@ -46,7 +46,9 @@ class Facility(TimeStampedModel):
         WAREHOUSE = "warehouse", _("Warehouse")
         OFFICE = "office", _("Office")
 
-    organization = models.ForeignKey(Organization, on_delete=models.CASCADE, related_name="facilities")
+    organization = models.ForeignKey(
+        Organization, on_delete=models.CASCADE, related_name="facilities"
+    )
     name = models.CharField(max_length=180)
     code = models.SlugField(max_length=80)
     facility_type = models.CharField(
@@ -86,7 +88,9 @@ class Membership(TenantOwnedModel):
         ACTIVE = "active", _("Active")
         SUSPENDED = "suspended", _("Suspended")
 
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="memberships")
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="memberships"
+    )
     title = models.CharField(max_length=120, blank=True)
     membership_status = models.CharField(
         max_length=32,
@@ -116,7 +120,9 @@ class Role(TenantOwnedModel):
 
     class Meta:
         constraints = [
-            models.UniqueConstraint(fields=["organization", "code"], name="unique_role_code_per_org")
+            models.UniqueConstraint(
+                fields=["organization", "code"], name="unique_role_code_per_org"
+            )
         ]
 
     def __str__(self) -> str:
@@ -153,4 +159,3 @@ class PermissionGrant(TenantOwnedModel):
 
     def __str__(self) -> str:
         return f"{self.role}: {self.resource}.{self.action}"
-

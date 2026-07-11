@@ -1,8 +1,14 @@
 # Business OS V2
 
-Business OS is a modular Django monolith for ecommerce-first business websites, admin portals, marketplace subscriptions, entitlements, and future operational modules.
+Business OS is a modular Django monolith for all-in-one business operations:
+websites, admin portals, marketplace subscriptions, entitlements, commerce,
+appointments, inventory, CRM, workforce, payments, communications, marketing,
+analytics, and future industry packs.
 
-## First Release Focus
+Ecommerce is the first production implementation slice, not the full product
+identity.
+
+## First Release Slice
 
 - India and UAE ecommerce businesses.
 - Boutique/fashion launch template without hard-coding the platform to dresses.

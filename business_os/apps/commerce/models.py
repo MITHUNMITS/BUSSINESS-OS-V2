@@ -13,11 +13,15 @@ class Cart(TenantOwnedModel):
         ORDERED = "ordered", _("Ordered")
         ABANDONED = "abandoned", _("Abandoned")
 
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True)
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True
+    )
     session_key = models.CharField(max_length=80, blank=True, db_index=True)
     customer_email = models.EmailField(blank=True)
     currency = models.CharField(max_length=3, default="AED")
-    status = models.CharField(max_length=32, choices=CartStatus.choices, default=CartStatus.OPEN, db_index=True)
+    status = models.CharField(
+        max_length=32, choices=CartStatus.choices, default=CartStatus.OPEN, db_index=True
+    )
 
     class Meta:
         indexes = [models.Index(fields=["organization", "session_key", "status"])]
@@ -25,14 +29,18 @@ class Cart(TenantOwnedModel):
 
 class CartItem(TenantOwnedModel):
     cart = models.ForeignKey(Cart, on_delete=models.CASCADE, related_name="items")
-    variant = models.ForeignKey("catalogue.OfferingVariant", on_delete=models.PROTECT, related_name="cart_items")
+    variant = models.ForeignKey(
+        "catalogue.OfferingVariant", on_delete=models.PROTECT, related_name="cart_items"
+    )
     quantity = models.PositiveIntegerField(default=1)
     unit_price = models.DecimalField(max_digits=12, decimal_places=2)
     line_total = models.DecimalField(max_digits=12, decimal_places=2)
 
     class Meta:
         constraints = [
-            models.UniqueConstraint(fields=["organization", "cart", "variant"], name="unique_cart_variant")
+            models.UniqueConstraint(
+                fields=["organization", "cart", "variant"], name="unique_cart_variant"
+            )
         ]
 
 
@@ -66,7 +74,9 @@ class Order(TenantOwnedModel):
 
     order_number = models.CharField(max_length=80, unique=True)
     cart = models.OneToOneField(Cart, on_delete=models.PROTECT, related_name="order")
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True)
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True
+    )
     customer_email = models.EmailField()
     customer_phone = models.CharField(max_length=40, blank=True)
     billing_address = models.JSONField(default=dict, blank=True)
@@ -97,7 +107,9 @@ class Order(TenantOwnedModel):
 
 class OrderItem(TenantOwnedModel):
     order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name="items")
-    variant = models.ForeignKey("catalogue.OfferingVariant", on_delete=models.PROTECT, related_name="order_items")
+    variant = models.ForeignKey(
+        "catalogue.OfferingVariant", on_delete=models.PROTECT, related_name="order_items"
+    )
     product_name = models.CharField(max_length=180)
     sku = models.CharField(max_length=80)
     quantity = models.PositiveIntegerField()
@@ -110,4 +122,3 @@ class OrderItem(TenantOwnedModel):
         blank=True,
         related_name="order_items",
     )
-

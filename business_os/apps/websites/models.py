@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from django.db import models
-from django.utils.translation import gettext_lazy as _
 
 from business_os.apps.core.models import RecordStatus, TenantOwnedModel, TimeStampedModel
 
@@ -28,6 +27,66 @@ class Website(TimeStampedModel):
 
     def __str__(self) -> str:
         return self.name
+
+
+class WebsiteDomain(TenantOwnedModel):
+    class DomainType(models.TextChoices):
+        GENERATED = "generated", "Generated"
+        CUSTOM = "custom", "Custom"
+        PREVIEW = "preview", "Preview"
+
+    class DomainStatus(models.TextChoices):
+        REQUESTED = "requested", "Requested"
+        DNS_PENDING = "dns_pending", "DNS pending"
+        VERIFYING = "verifying", "Verifying"
+        VERIFIED = "verified", "Verified"
+        SSL_PENDING = "ssl_pending", "SSL pending"
+        ACTIVE = "active", "Active"
+        FAILED = "failed", "Failed"
+        SUSPENDED = "suspended", "Suspended"
+        REMOVED = "removed", "Removed"
+
+    class RedirectMode(models.TextChoices):
+        NONE = "none", "None"
+        WWW = "www", "Redirect to www"
+        NON_WWW = "non_www", "Redirect to non-www"
+
+    website = models.ForeignKey(Website, on_delete=models.CASCADE, related_name="domains")
+    domain_name = models.CharField(max_length=253, unique=True)
+    domain_type = models.CharField(
+        max_length=24,
+        choices=DomainType.choices,
+        default=DomainType.GENERATED,
+    )
+    domain_status = models.CharField(
+        max_length=32,
+        choices=DomainStatus.choices,
+        default=DomainStatus.REQUESTED,
+        db_index=True,
+    )
+    is_primary = models.BooleanField(default=False)
+    redirect_generated_subdomain = models.BooleanField(default=False)
+    redirect_mode = models.CharField(
+        max_length=24,
+        choices=RedirectMode.choices,
+        default=RedirectMode.NONE,
+    )
+    verification_method = models.CharField(max_length=80, blank=True)
+    verification_token = models.CharField(max_length=160, blank=True)
+    dns_records = models.JSONField(default=list, blank=True)
+    ssl_status = models.CharField(max_length=80, blank=True)
+    last_checked_at = models.DateTimeField(null=True, blank=True)
+    verified_at = models.DateTimeField(null=True, blank=True)
+    failure_reason = models.CharField(max_length=255, blank=True)
+
+    class Meta:
+        indexes = [
+            models.Index(fields=["organization", "domain_status"]),
+            models.Index(fields=["domain_name", "domain_status"]),
+        ]
+
+    def __str__(self) -> str:
+        return self.domain_name
 
 
 class WebsiteTheme(TenantOwnedModel):
@@ -98,4 +157,3 @@ class WebsiteVersion(TenantOwnedModel):
                 name="unique_website_version_number",
             )
         ]
-

@@ -9,12 +9,11 @@
       <h1 class="text-2xl font-semibold">{% block page_title %}{% trans "Overview" %}{% endblock %}</h1>
     </div>
     <nav class="flex gap-2" aria-label="{% trans 'Platform navigation' %}">
-      <a class="btn btn-sm btn-outline" href="{% url 'platform-overview' %}">{% trans "Overview" %}</a>
-      <a class="btn btn-sm btn-outline" href="{% url 'platform-modules' %}">{% trans "Modules" %}</a>
-      <a class="btn btn-sm btn-outline" href="{% url 'platform-organizations' %}">{% trans "Organizations" %}</a>
+      <a class="btn btn-sm btn-outline" href="{% if request.host_surface == 'platform_admin' %}/{% else %}{% url 'platform-overview' %}{% endif %}">{% trans "Overview" %}</a>
+      <a class="btn btn-sm btn-outline" href="{% if request.host_surface == 'platform_admin' %}/modules/{% else %}{% url 'platform-modules' %}{% endif %}">{% trans "Modules" %}</a>
+      <a class="btn btn-sm btn-outline" href="{% if request.host_surface == 'platform_admin' %}/organizations/{% else %}{% url 'platform-organizations' %}{% endif %}">{% trans "Organizations" %}</a>
     </nav>
   </div>
   {% block content %}{% endblock %}
 </main>
 {% endblock %}
-

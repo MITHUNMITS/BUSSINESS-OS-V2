@@ -6,10 +6,10 @@
 {% block body %}
 <header class="border-b border-base-300 bg-base-100">
   <div class="bos-shell flex min-h-16 items-center justify-between gap-4">
-    <a class="text-xl font-semibold" href="{% url 'public-home' website.slug %}">{{ website.name }}</a>
+    <a class="text-xl font-semibold" href="{% if request.website %}/{% else %}{% url 'public-home' website.slug %}{% endif %}">{{ website.name }}</a>
     <nav class="hidden gap-4 md:flex" aria-label="{% trans 'Website navigation' %}">
       {% for page in pages %}
-        <a class="link-hover" href="{% url 'public-page' website.slug page.slug %}">{{ page.title }}</a>
+        <a class="link-hover" href="{% if request.website %}/p/{{ page.slug }}/{% else %}{% url 'public-page' website.slug page.slug %}{% endif %}">{{ page.title }}</a>
       {% endfor %}
     </nav>
   </div>
@@ -24,8 +24,8 @@
           {% trans "Curated ecommerce storefront powered by Business OS." %}
         </p>
         <div class="mt-6 flex gap-3">
-          <a class="btn btn-primary" href="{% url 'public-page' website.slug 'shop' %}">{% trans "Shop collection" %}</a>
-          <a class="btn btn-outline" href="{% url 'public-page' website.slug 'contact' %}">{% trans "Contact" %}</a>
+          <a class="btn btn-primary" href="{% if request.website %}/p/shop/{% else %}{% url 'public-page' website.slug 'shop' %}{% endif %}">{% trans "Shop collection" %}</a>
+          <a class="btn btn-outline" href="{% if request.website %}/p/contact/{% else %}{% url 'public-page' website.slug 'contact' %}{% endif %}">{% trans "Contact" %}</a>
         </div>
       </div>
       <div class="aspect-[4/5] rounded-lg bg-base-200 p-6">
@@ -64,4 +64,3 @@
   </div>
 </footer>
 {% endblock %}
-

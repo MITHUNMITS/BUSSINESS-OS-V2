@@ -28,4 +28,3 @@ admin.site.register(Membership)
 admin.site.register(Role)
 admin.site.register(MembershipRole)
 admin.site.register(PermissionGrant)
-

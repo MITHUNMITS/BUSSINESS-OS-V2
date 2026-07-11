@@ -11,4 +11,3 @@ class BusinessOSUserAdmin(UserAdmin):
     fieldsets = UserAdmin.fieldsets + (
         ("Business OS", {"fields": ("phone_number", "locale", "timezone", "is_platform_staff")}),
     )
-

@@ -14,7 +14,9 @@ from business_os.apps.entitlements.models import (
 )
 
 
-def has_entitlement(*, organization: Any, capability_code: str, facility: Any | None = None) -> bool:
+def has_entitlement(
+    *, organization: Any, capability_code: str, facility: Any | None = None
+) -> bool:
     organization_id = getattr(organization, "id", organization)
     facility_id = getattr(facility, "id", facility) if facility is not None else None
     now = timezone.now()
@@ -31,11 +33,15 @@ def has_entitlement(*, organization: Any, capability_code: str, facility: Any | 
 def has_any_entitlement(*, organization: Any, capability_codes: Iterable[str]) -> bool:
     organization_id = getattr(organization, "id", organization)
     now = timezone.now()
-    return OrganizationEntitlement.objects.filter(
-        organization_id=organization_id,
-        code__in=list(capability_codes),
-        state__in=ACTIVE_ENTITLEMENT_STATES,
-    ).filter(models_q_current(now)).exists()
+    return (
+        OrganizationEntitlement.objects.filter(
+            organization_id=organization_id,
+            code__in=list(capability_codes),
+            state__in=ACTIVE_ENTITLEMENT_STATES,
+        )
+        .filter(models_q_current(now))
+        .exists()
+    )
 
 
 def models_q_current(now):
@@ -85,4 +91,3 @@ def initialize_limit(
         defaults={"included_quantity": included_quantity, "unit": unit},
     )
     return limit
-

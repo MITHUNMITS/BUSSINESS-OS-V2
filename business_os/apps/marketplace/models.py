@@ -58,14 +58,18 @@ class Capability(TimeStampedModel):
 
 class ModuleCapability(TimeStampedModel):
     module = models.ForeignKey(Module, on_delete=models.CASCADE, related_name="module_capabilities")
-    capability = models.ForeignKey(Capability, on_delete=models.CASCADE, related_name="module_links")
+    capability = models.ForeignKey(
+        Capability, on_delete=models.CASCADE, related_name="module_links"
+    )
     included = models.BooleanField(default=True)
     required = models.BooleanField(default=False)
     sort_order = models.PositiveIntegerField(default=0)
 
     class Meta:
         constraints = [
-            models.UniqueConstraint(fields=["module", "capability"], name="unique_module_capability")
+            models.UniqueConstraint(
+                fields=["module", "capability"], name="unique_module_capability"
+            )
         ]
         ordering = ["sort_order", "capability__code"]
 
@@ -78,7 +82,9 @@ class ModuleDependency(TimeStampedModel):
         CONFLICTING = "conflicting", _("Conflicting")
 
     module = models.ForeignKey(Module, on_delete=models.CASCADE, related_name="dependencies")
-    depends_on = models.ForeignKey(Module, on_delete=models.CASCADE, related_name="dependent_modules")
+    depends_on = models.ForeignKey(
+        Module, on_delete=models.CASCADE, related_name="dependent_modules"
+    )
     dependency_type = models.CharField(
         max_length=32,
         choices=DependencyType.choices,
@@ -177,4 +183,3 @@ class BundleItem(TimeStampedModel):
                 name="unique_bundle_module_capability",
             )
         ]
-

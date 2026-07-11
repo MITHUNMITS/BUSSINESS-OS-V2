@@ -30,7 +30,9 @@ class PaymentIntent(TenantOwnedModel):
         FAILED = "failed", _("Failed")
         CANCELLED = "cancelled", _("Cancelled")
 
-    provider = models.ForeignKey(PaymentProvider, on_delete=models.PROTECT, related_name="payment_intents")
+    provider = models.ForeignKey(
+        PaymentProvider, on_delete=models.PROTECT, related_name="payment_intents"
+    )
     amount = models.DecimalField(max_digits=12, decimal_places=2)
     currency = models.CharField(max_length=3)
     status = models.CharField(
@@ -54,10 +56,11 @@ class PaymentIntent(TenantOwnedModel):
 
 class PaymentTransaction(TenantOwnedModel):
     intent = models.ForeignKey(PaymentIntent, on_delete=models.PROTECT, related_name="transactions")
-    provider = models.ForeignKey(PaymentProvider, on_delete=models.PROTECT, related_name="transactions")
+    provider = models.ForeignKey(
+        PaymentProvider, on_delete=models.PROTECT, related_name="transactions"
+    )
     amount = models.DecimalField(max_digits=12, decimal_places=2)
     currency = models.CharField(max_length=3)
     status = models.CharField(max_length=40, db_index=True)
     external_reference = models.CharField(max_length=160, blank=True, db_index=True)
     raw_event_reference = models.CharField(max_length=160, blank=True, db_index=True)
-

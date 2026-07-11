@@ -6,4 +6,3 @@ def visible_marketplace_modules(country: str | None = None):
     if country:
         queryset = queryset.filter(supported_countries__contains=[country])
     return queryset.prefetch_related("module_capabilities__capability", "prices")
-

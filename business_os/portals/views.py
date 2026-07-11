@@ -12,21 +12,26 @@ from business_os.apps.websites.services import visible_pages_for_website
 def _organization_context(request, organization_slug: str):
     organization = get_object_or_404(Organization, slug=organization_slug)
     user = request.user
-    is_member = (
-        user.is_authenticated
-        and (
-            getattr(user, "is_platform_staff", False)
-            or Membership.objects.filter(
-                organization=organization,
-                user=user,
-                membership_status="active",
-            ).exists()
-        )
+    is_member = user.is_authenticated and (
+        getattr(user, "is_platform_staff", False)
+        or Membership.objects.filter(
+            organization=organization,
+            user=user,
+            membership_status="active",
+        ).exists()
     )
     if not is_member:
         raise PermissionDenied("Organization membership is required.")
     navigation = get_navigation(organization=organization, user=request.user)
     return organization, navigation
+
+
+def _require_platform_staff(request):
+    if not (
+        request.user.is_authenticated
+        and getattr(request.user, "is_platform_staff", False)
+    ):
+        raise PermissionDenied("Platform staff access is required.")
 
 
 def admin_dashboard(request, organization_slug: str):
@@ -57,12 +62,20 @@ def admin_marketplace(request, organization_slug: str):
 
 def admin_billing(request, organization_slug: str):
     organization, navigation = _organization_context(request, organization_slug)
-    return render(request, "admin_portal/simple_page.html", {"title": "Billing", "organization": organization, "navigation": navigation})
+    return render(
+        request,
+        "admin_portal/simple_page.html",
+        {"title": "Billing", "organization": organization, "navigation": navigation},
+    )
 
 
 def admin_website(request, organization_slug: str):
     organization, navigation = _organization_context(request, organization_slug)
-    pages = visible_pages_for_website(website=organization.website) if hasattr(organization, "website") else []
+    pages = (
+        visible_pages_for_website(website=organization.website)
+        if hasattr(organization, "website")
+        else []
+    )
     return render(
         request,
         "admin_portal/website.html",
@@ -82,12 +95,20 @@ def admin_products(request, organization_slug: str):
 
 def admin_categories(request, organization_slug: str):
     organization, navigation = _organization_context(request, organization_slug)
-    return render(request, "admin_portal/simple_page.html", {"title": "Categories", "organization": organization, "navigation": navigation})
+    return render(
+        request,
+        "admin_portal/simple_page.html",
+        {"title": "Categories", "organization": organization, "navigation": navigation},
+    )
 
 
 def admin_inventory(request, organization_slug: str):
     organization, navigation = _organization_context(request, organization_slug)
-    return render(request, "admin_portal/simple_page.html", {"title": "Inventory", "organization": organization, "navigation": navigation})
+    return render(
+        request,
+        "admin_portal/simple_page.html",
+        {"title": "Inventory", "organization": organization, "navigation": navigation},
+    )
 
 
 def admin_orders(request, organization_slug: str):
@@ -102,20 +123,33 @@ def admin_orders(request, organization_slug: str):
 
 def admin_payments(request, organization_slug: str):
     organization, navigation = _organization_context(request, organization_slug)
-    return render(request, "admin_portal/simple_page.html", {"title": "Payments", "organization": organization, "navigation": navigation})
+    return render(
+        request,
+        "admin_portal/simple_page.html",
+        {"title": "Payments", "organization": organization, "navigation": navigation},
+    )
 
 
 def admin_analytics(request, organization_slug: str):
     organization, navigation = _organization_context(request, organization_slug)
-    return render(request, "admin_portal/simple_page.html", {"title": "Analytics", "organization": organization, "navigation": navigation})
+    return render(
+        request,
+        "admin_portal/simple_page.html",
+        {"title": "Analytics", "organization": organization, "navigation": navigation},
+    )
 
 
 def admin_settings(request, organization_slug: str):
     organization, navigation = _organization_context(request, organization_slug)
-    return render(request, "admin_portal/simple_page.html", {"title": "Settings", "organization": organization, "navigation": navigation})
+    return render(
+        request,
+        "admin_portal/simple_page.html",
+        {"title": "Settings", "organization": organization, "navigation": navigation},
+    )
 
 
 def platform_overview(request):
+    _require_platform_staff(request)
     modules = load_module_definitions()
     organizations = Organization.objects.order_by("name")[:10]
     return render(
@@ -126,10 +160,12 @@ def platform_overview(request):
 
 
 def platform_modules(request):
+    _require_platform_staff(request)
     modules = load_module_definitions()
     return render(request, "platform_portal/modules.html", {"modules": modules.values()})
 
 
 def platform_organizations(request):
+    _require_platform_staff(request)
     organizations = Organization.objects.order_by("name")
     return render(request, "platform_portal/organizations.html", {"organizations": organizations})

@@ -19,4 +19,3 @@ admin.site.register(OfferingVariant)
 admin.site.register(OfferingImage)
 admin.site.register(OptionDefinition)
 admin.site.register(OptionValue)
-

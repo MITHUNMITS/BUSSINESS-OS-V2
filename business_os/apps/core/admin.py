@@ -16,4 +16,3 @@ class MediaAssetAdmin(admin.ModelAdmin):
     list_display = ("title", "organization", "access_level", "mime_type", "created_at")
     list_filter = ("access_level", "mime_type")
     search_fields = ("title", "alt_text")
-

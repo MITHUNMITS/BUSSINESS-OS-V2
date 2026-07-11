@@ -95,7 +95,9 @@ class Command(BaseCommand):
         if existing_organization:
             organization = existing_organization
             facility = Facility.objects.get(organization=organization, code="online")
-            owner_membership = Membership.objects.filter(organization=organization, is_owner=True).first()
+            owner_membership = Membership.objects.filter(
+                organization=organization, is_owner=True
+            ).first()
         else:
             result = onboard_organization(
                 owner_email="owner@example.com",
@@ -119,7 +121,9 @@ class Command(BaseCommand):
             provider_type=PaymentProvider.ProviderType.COD,
             defaults={"name": "Cash on delivery", "active": True},
         )
-        for index, name in enumerate(["Linen Wrap Dress", "Silk Occasion Set", "Everyday Cotton Kurti"], start=1):
+        for index, name in enumerate(
+            ["Linen Wrap Dress", "Silk Occasion Set", "Everyday Cotton Kurti"], start=1
+        ):
             product_code = f"NOVA-{index:03d}"
             existing_product = organization.catalogue_offering_set.filter(code=product_code).first()
             product = existing_product or create_product(
@@ -145,4 +149,3 @@ class Command(BaseCommand):
             )
         publish_website(website=website, user=owner)
         self.stdout.write(self.style.SUCCESS("Seeded Business OS ecommerce launch data."))
-

@@ -7,8 +7,15 @@ from django.utils import timezone
 from django.utils.text import slugify
 
 from business_os.apps.entitlements.services import has_entitlement
-from business_os.apps.websites.models import Website, WebsitePage, WebsiteSection, WebsiteTheme, WebsiteVersion
-
+from business_os.apps.websites.domain_services import generated_domain_for_slug
+from business_os.apps.websites.models import (
+    Website,
+    WebsiteDomain,
+    WebsitePage,
+    WebsiteSection,
+    WebsiteTheme,
+    WebsiteVersion,
+)
 
 DEFAULT_THEME_TOKENS = {
     "primary": "#1f7a68",
@@ -89,6 +96,17 @@ def provision_default_website(*, organization: Any, owner: Any | None = None) ->
             created_by=owner,
             sort_order=90,
         )
+    WebsiteDomain.objects.get_or_create(
+        organization=organization,
+        website=website,
+        domain_name=generated_domain_for_slug(website.slug),
+        defaults={
+            "domain_type": WebsiteDomain.DomainType.GENERATED,
+            "domain_status": WebsiteDomain.DomainStatus.ACTIVE,
+            "is_primary": not bool(website.primary_domain),
+            "created_by": owner,
+        },
+    )
     return website
 
 

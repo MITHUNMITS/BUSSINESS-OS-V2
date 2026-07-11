@@ -19,4 +19,3 @@ MODULE_CONFIG = {
         {"type": "section", "section_type": "product_grid", "capability": "catalogue.basic"},
     ],
 }
-

@@ -47,4 +47,3 @@ def audit_event(
             reason=reason,
             source=source,
         )
-

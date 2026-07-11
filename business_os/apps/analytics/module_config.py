@@ -10,4 +10,3 @@ MODULE_CONFIG = {
     ],
     "website_contributions": [],
 }
-

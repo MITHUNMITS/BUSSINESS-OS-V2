@@ -97,7 +97,9 @@ def database_config() -> dict[str, object]:
         }
 
     parsed = urlparse(database_url)
-    engine = "django.db.backends.postgresql" if parsed.scheme.startswith("postgres") else parsed.scheme
+    engine = (
+        "django.db.backends.postgresql" if parsed.scheme.startswith("postgres") else parsed.scheme
+    )
     return {
         "ENGINE": engine,
         "NAME": parsed.path.lstrip("/"),
@@ -166,4 +168,3 @@ EMAIL_BACKEND = env(
     "DJANGO_EMAIL_BACKEND",
     "django.core.mail.backends.console.EmailBackend",
 )
-

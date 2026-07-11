@@ -32,7 +32,7 @@ def load_module_definitions() -> dict[str, ModuleDefinition]:
     definitions: dict[str, ModuleDefinition] = {}
     for path in MODULE_CONFIG_PATHS:
         module = import_module(path)
-        config = getattr(module, "MODULE_CONFIG")
+        config = module.MODULE_CONFIG
         definitions[config["code"]] = ModuleDefinition(
             code=config["code"],
             name=config["name"],
@@ -63,4 +63,3 @@ def get_navigation(*, organization: Any, user: Any) -> list[dict[str, Any]]:
     navigation.append({"label": "Marketplace", "url_name": "admin-marketplace", "icon": "store"})
     navigation.append({"label": "Settings", "url_name": "admin-settings", "icon": "settings"})
     return navigation
-

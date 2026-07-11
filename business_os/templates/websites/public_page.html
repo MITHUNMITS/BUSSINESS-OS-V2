@@ -5,7 +5,7 @@
 
 {% block body %}
 <main id="main" class="bos-shell py-10">
-  <a class="link" href="{% url 'public-home' website.slug %}">{% trans "Back home" %}</a>
+  <a class="link" href="{% if request.website %}/{% else %}{% url 'public-home' website.slug %}{% endif %}">{% trans "Back home" %}</a>
   <h1 class="mt-6 text-3xl font-semibold">{{ page.title }}</h1>
   <div class="mt-6 space-y-4">
     {% for section in page.sections.all %}
@@ -19,4 +19,3 @@
   </div>
 </main>
 {% endblock %}
-

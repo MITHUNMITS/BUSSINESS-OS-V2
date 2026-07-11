@@ -5,4 +5,3 @@ from business_os.apps.payments.models import PaymentIntent, PaymentProvider, Pay
 admin.site.register(PaymentProvider)
 admin.site.register(PaymentIntent)
 admin.site.register(PaymentTransaction)
-

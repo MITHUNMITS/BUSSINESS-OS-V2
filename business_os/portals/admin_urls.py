@@ -4,7 +4,9 @@ from business_os.portals import views
 
 urlpatterns = [
     path("o/<slug:organization_slug>/dashboard/", views.admin_dashboard, name="admin-dashboard"),
-    path("o/<slug:organization_slug>/marketplace/", views.admin_marketplace, name="admin-marketplace"),
+    path(
+        "o/<slug:organization_slug>/marketplace/", views.admin_marketplace, name="admin-marketplace"
+    ),
     path("o/<slug:organization_slug>/billing/", views.admin_billing, name="admin-billing"),
     path("o/<slug:organization_slug>/website/", views.admin_website, name="admin-website"),
     path("o/<slug:organization_slug>/products/", views.admin_products, name="admin-products"),
@@ -15,4 +17,3 @@ urlpatterns = [
     path("o/<slug:organization_slug>/analytics/", views.admin_analytics, name="admin-analytics"),
     path("o/<slug:organization_slug>/settings/", views.admin_settings, name="admin-settings"),
 ]
-

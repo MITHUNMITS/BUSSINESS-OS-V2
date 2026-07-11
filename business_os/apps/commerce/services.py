@@ -34,7 +34,9 @@ def _order_number(organization) -> str:
 
 
 @transaction.atomic
-def get_or_create_cart(*, organization, facility, user=None, session_key: str = "", currency: str = "AED") -> Cart:
+def get_or_create_cart(
+    *, organization, facility, user=None, session_key: str = "", currency: str = "AED"
+) -> Cart:
     _require_capability(organization, "commerce.cart")
     lookup = {"organization": organization, "status": Cart.CartStatus.OPEN}
     if user and user.is_authenticated:

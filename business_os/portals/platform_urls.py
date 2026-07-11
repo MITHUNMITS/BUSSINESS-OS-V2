@@ -7,4 +7,3 @@ urlpatterns = [
     path("modules/", views.platform_modules, name="platform-modules"),
     path("organizations/", views.platform_organizations, name="platform-organizations"),
 ]
-

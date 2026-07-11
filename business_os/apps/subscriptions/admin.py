@@ -13,4 +13,3 @@ admin.site.register(SubscriptionItem)
 admin.site.register(PlatformBillingInvoice)
 admin.site.register(PlatformBillingInvoiceLine)
 admin.site.register(PlatformBillingPayment)
-

@@ -29,15 +29,15 @@ class TimeStampedModel(models.Model):
 
 
 class TenantQuerySet(models.QuerySet):
-    def for_organization(self, organization: Any) -> "TenantQuerySet":
+    def for_organization(self, organization: Any) -> TenantQuerySet:
         organization_id = getattr(organization, "id", organization)
         return self.filter(organization_id=organization_id)
 
-    def for_facility(self, facility: Any) -> "TenantQuerySet":
+    def for_facility(self, facility: Any) -> TenantQuerySet:
         facility_id = getattr(facility, "id", facility)
         return self.filter(facility_id=facility_id)
 
-    def active(self) -> "TenantQuerySet":
+    def active(self) -> TenantQuerySet:
         return self.filter(status=RecordStatus.ACTIVE)
 
 
@@ -154,4 +154,3 @@ class MediaAsset(TenantOwnedModel):
 
     def __str__(self) -> str:
         return self.title
-
