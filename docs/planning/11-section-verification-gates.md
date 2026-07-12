@@ -93,7 +93,7 @@ A feature is production-ready for its declared scope only when all applicable it
 
 1. Finish domain lifecycle work for DNS verification, TLS automation, custom-domain diagnostics, and preview authorization.
 2. Finish customer actor login and customer portal policy on top of the new session isolation foundation.
-3. Continue facility-aware form schemas beyond the completed catalogue offering create form; add module defaults, workflows, reports, and website sections before broadening beyond ecommerce.
+3. Continue facility-aware form schemas beyond the completed catalogue offering/category/collection workflows; finish options, variants, media, imports/exports, module defaults, workflows, reports, and website sections before broadening beyond ecommerce.
 4. Add MFA/approval controls before controlled-write support access.
 5. Expand marketplace/subscription purchase flow with pricing snapshots and billing edge cases.
 6. Add domain events/outbox before notifications, analytics, integrations, or workflow automation grow.

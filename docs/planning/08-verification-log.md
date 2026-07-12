@@ -232,6 +232,18 @@ Known dev-only warning:
 
 - Pytest still reports the existing local staticfiles warning: `No directory at: /app/staticfiles/`.
 
+## 2026-07-12 Planning Handoff Refresh
+
+Implemented:
+
+- Updated `12-next-day-prompt.md` for the 2026-07-13 continuation state.
+- Moved the next recommended implementation from completed facility terminology work to the catalogue options/variants admin lifecycle.
+- Aligned the planning index, master-spec gap register, and section verification gates with the completed offering/category/collection lifecycle state.
+
+Commands run:
+
+- `git diff --check`: passed.
+
 ## 2026-07-12 Catalogue Category Admin Lifecycle Completion
 
 Affected master-spec sections:

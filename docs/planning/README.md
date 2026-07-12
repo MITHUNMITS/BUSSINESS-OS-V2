@@ -13,7 +13,7 @@ This folder tracks the production implementation plan for the modular Business O
 - `09-master-spec-compliance.md` tracks current compliance with the master prompt.
 - `10-master-spec-gap-register.md` records missed or under-specified master-spec requirements.
 - `11-section-verification-gates.md` defines the section-by-section gate for every build task.
-- `12-next-day-prompt.md` is the continuation prompt for July 12, 2026.
+- `12-next-day-prompt.md` is the current next-day continuation prompt.
 - `13-actor-portal-support-foundation.md` records the platform actor/support access foundation decision.
 - `14-business-platform-login-session-completion.md` records the completed Business Admin and Platform login/session scope.
 - `15-facility-terminology-completion.md` records the completed facility terminology resolver scope.

@@ -61,6 +61,7 @@ Current focus:
 - Master-spec gap register added in `10-master-spec-gap-register.md`.
 - Section-by-section build verification gates added in `11-section-verification-gates.md`.
 - Next-day continuation prompt added in `12-next-day-prompt.md`.
+- Next-day continuation prompt refreshed for 2026-07-13 with catalogue options/variants as the next production slice.
 - Actor/support foundation implementation note added in `13-actor-portal-support-foundation.md`.
 - Business/Admin and Platform login completion note added in `14-business-platform-login-session-completion.md`.
 - Facility terminology resolver completion note added in `15-facility-terminology-completion.md`.
