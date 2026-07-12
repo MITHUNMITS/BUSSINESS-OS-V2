@@ -180,6 +180,58 @@ Known dev-only warning:
 
 - Pytest still reports the existing local staticfiles warning: `No directory at: /app/staticfiles/`.
 
+## 2026-07-12 Catalogue Collection Admin Lifecycle Completion
+
+Affected master-spec sections:
+
+- Section 7: Business Admin UI/UX.
+- Section 11: Forms and controls.
+- Section 16: Security and multi-tenancy.
+- Section 27: Facility model and facility-aware adaptation.
+- Section 29: Catalogue & Offerings.
+- Section 39: Database governance.
+- Section 40: Codex delivery protocol.
+
+Implemented:
+
+- Added facility-aware collection form schema and form validation.
+- Added tenant-scoped Business Admin collection list, create, detail, edit, archive, and restore routes.
+- Added collection list/form/detail templates.
+- Added Collections to catalogue navigation and route mapping.
+- Added `create_collection`, `update_collection`, `archive_collection`, and `restore_collection` service methods.
+- Added tenant/facility validation for collection offering membership.
+- Added collection item synchronization.
+- Added unique slug generation and duplicate slug validation.
+- Added lifecycle audit events for collection create/update/archive/restore.
+- Added collection membership display on offering detail.
+- Added implementation note `19-catalogue-collection-admin-lifecycle-completion.md`.
+
+Commands run:
+
+- `docker compose run --rm web sh docker/entrypoint.sh pytest tests/integration/test_catalogue_collection_admin.py -q`: passed, 8 tests.
+- `docker compose run --rm web sh docker/entrypoint.sh ruff check business_os/apps/catalogue/forms.py business_os/apps/catalogue/services.py business_os/apps/catalogue/selectors.py business_os/apps/catalogue/module_config.py business_os/apps/core/module_registry.py business_os/apps/organizations/facility_profiles.py business_os/portals/admin_urls.py business_os/portals/views.py tests/integration/test_catalogue_collection_admin.py`: passed.
+- `docker compose run --rm web sh docker/entrypoint.sh pytest tests/integration/test_catalogue_admin_create.py tests/integration/test_catalogue_admin_lifecycle.py tests/integration/test_catalogue_category_admin.py tests/integration/test_catalogue_collection_admin.py tests/integration/test_facility_terminology.py -q`: passed, 37 tests.
+- `docker compose run --rm web sh docker/entrypoint.sh python manage.py check`: passed.
+- `docker compose run --rm web sh docker/entrypoint.sh python manage.py makemigrations --check --dry-run`: passed with no changes detected.
+- `docker compose run --rm web sh docker/entrypoint.sh python manage.py migrate --check`: passed with no unapplied migrations.
+- `docker compose run --rm web sh docker/entrypoint.sh ruff check .`: passed.
+- `docker compose run --rm web sh docker/entrypoint.sh pytest`: passed, 76 tests.
+
+Test coverage added:
+
+- Business Admin can create a collection with offerings and audit event.
+- Business Admin can edit collection metadata and synchronize membership.
+- Duplicate collection slug returns a form error and preserves original data.
+- Collection archive/restore are POST-only and audited.
+- Business member cannot access another organization's collection lifecycle.
+- Collection offering membership must be same-organization scoped.
+- Office collection form uses service terms and navigation route is real.
+- Offering detail shows collection membership.
+
+Known dev-only warning:
+
+- Pytest still reports the existing local staticfiles warning: `No directory at: /app/staticfiles/`.
+
 ## 2026-07-12 Catalogue Category Admin Lifecycle Completion
 
 Affected master-spec sections:

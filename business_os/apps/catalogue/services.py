@@ -6,7 +6,13 @@ from django.core.exceptions import PermissionDenied
 from django.db import transaction
 from django.utils.text import slugify
 
-from business_os.apps.catalogue.models import Category, Offering, OfferingVariant
+from business_os.apps.catalogue.models import (
+    Category,
+    Collection,
+    CollectionItem,
+    Offering,
+    OfferingVariant,
+)
 from business_os.apps.core.models import RecordStatus
 
 
@@ -287,6 +293,137 @@ def update_category(
 
 
 @transaction.atomic
+def create_collection(
+    *,
+    organization,
+    name: str,
+    slug: str = "",
+    description: str = "",
+    offerings=None,
+    facility=None,
+    status: str = RecordStatus.ACTIVE,
+    created_by=None,
+) -> Collection:
+    if facility is not None and facility.organization_id != organization.id:
+        raise PermissionDenied("Facility does not belong to this organization.")
+    selected_offerings = list(offerings or [])
+    _validate_collection_offerings(
+        organization=organization,
+        facility=facility,
+        offerings=selected_offerings,
+    )
+    payload = _clean_collection_payload(
+        organization=organization,
+        name=name,
+        slug=slug,
+        status=status,
+    )
+    collection = Collection.objects.create(
+        organization=organization,
+        facility=facility,
+        name=payload["name"],
+        slug=payload["slug"],
+        description=description.strip(),
+        status=payload["status"],
+        created_by=created_by,
+    )
+    _sync_collection_offerings(
+        organization=organization,
+        collection=collection,
+        facility=facility,
+        offerings=selected_offerings,
+        user=created_by,
+    )
+    return collection
+
+
+@transaction.atomic
+def update_collection(
+    *,
+    organization,
+    collection,
+    name: str,
+    slug: str = "",
+    description: str = "",
+    offerings=None,
+    facility=None,
+    status: str = RecordStatus.ACTIVE,
+    updated_by=None,
+) -> Collection:
+    if collection.organization_id != organization.id:
+        raise PermissionDenied("Collection does not belong to this organization.")
+    if facility is not None and facility.organization_id != organization.id:
+        raise PermissionDenied("Facility does not belong to this organization.")
+
+    current = Collection.objects.select_for_update().get(
+        organization=organization,
+        id=collection.id,
+    )
+    selected_offerings = list(offerings or [])
+    _validate_collection_offerings(
+        organization=organization,
+        facility=facility,
+        offerings=selected_offerings,
+    )
+    payload = _clean_collection_payload(
+        organization=organization,
+        name=name,
+        slug=slug,
+        status=status,
+        exclude=current,
+    )
+    current.facility = facility
+    current.name = payload["name"]
+    current.slug = payload["slug"]
+    current.description = description.strip()
+    current.status = payload["status"]
+    current.updated_by = updated_by
+    current.save(
+        update_fields=[
+            "facility",
+            "name",
+            "slug",
+            "description",
+            "status",
+            "updated_by",
+            "updated_at",
+        ]
+    )
+    _sync_collection_offerings(
+        organization=organization,
+        collection=current,
+        facility=facility,
+        offerings=selected_offerings,
+        user=updated_by,
+    )
+    return current
+
+
+@transaction.atomic
+def archive_collection(*, organization, collection, archived_by=None) -> Collection:
+    current = _locked_collection_for_organization(
+        organization=organization,
+        collection=collection,
+    )
+    current.status = RecordStatus.ARCHIVED
+    current.updated_by = archived_by
+    current.save(update_fields=["status", "updated_by", "updated_at"])
+    return current
+
+
+@transaction.atomic
+def restore_collection(*, organization, collection, restored_by=None) -> Collection:
+    current = _locked_collection_for_organization(
+        organization=organization,
+        collection=collection,
+    )
+    current.status = RecordStatus.DRAFT
+    current.updated_by = restored_by
+    current.save(update_fields=["status", "updated_by", "updated_at"])
+    return current
+
+
+@transaction.atomic
 def archive_category(*, organization, category, archived_by=None) -> Category:
     current = _locked_category_for_organization(organization=organization, category=category)
     current.status = RecordStatus.ARCHIVED
@@ -422,6 +559,40 @@ def _clean_category_payload(
     }
 
 
+def _clean_collection_payload(
+    *,
+    organization,
+    name: str,
+    slug: str,
+    status: str,
+    exclude=None,
+) -> dict[str, object]:
+    cleaned_name = name.strip()
+    if not cleaned_name:
+        raise ValueError("Collection name is required.")
+    if status not in {RecordStatus.ACTIVE, RecordStatus.DRAFT}:
+        raise ValueError("Unsupported collection status.")
+
+    explicit_slug = bool(slug.strip())
+    cleaned_slug = slugify(slug.strip()) if explicit_slug else _unique_collection_slug(
+        organization=organization,
+        name=cleaned_name,
+        exclude=exclude,
+    )
+    if not cleaned_slug:
+        raise ValueError("Collection slug is required.")
+    conflicts = Collection.objects.filter(organization=organization, slug__iexact=cleaned_slug)
+    if exclude is not None:
+        conflicts = conflicts.exclude(id=exclude.id)
+    if conflicts.exists():
+        raise ValueError("A collection with this slug already exists.")
+    return {
+        "name": cleaned_name,
+        "slug": cleaned_slug,
+        "status": status,
+    }
+
+
 def _validate_category_scope(*, organization, facility, category) -> None:
     if category is None:
         return
@@ -449,6 +620,20 @@ def _validate_category_parent(*, organization, facility, parent, category=None) 
             raise ValueError("A category cannot be moved under one of its descendants.")
 
 
+def _validate_collection_offerings(*, organization, facility, offerings) -> None:
+    seen_ids = set()
+    for offering in offerings:
+        if offering.id in seen_ids:
+            continue
+        seen_ids.add(offering.id)
+        if offering.organization_id != organization.id:
+            raise PermissionDenied("Collection offering does not belong to this organization.")
+        if facility is not None and offering.facility_id not in {None, facility.id}:
+            raise PermissionDenied("Collection offering does not belong to this facility.")
+        if offering.status in {RecordStatus.ARCHIVED, RecordStatus.DELETED}:
+            raise ValueError("Archived offerings cannot be assigned to collections.")
+
+
 def _locked_offering_for_organization(*, organization, offering) -> Offering:
     if offering.organization_id != organization.id:
         raise PermissionDenied("Offering does not belong to this organization.")
@@ -459,6 +644,15 @@ def _locked_category_for_organization(*, organization, category) -> Category:
     if category.organization_id != organization.id:
         raise PermissionDenied("Category does not belong to this organization.")
     return Category.objects.select_for_update().get(organization=organization, id=category.id)
+
+
+def _locked_collection_for_organization(*, organization, collection) -> Collection:
+    if collection.organization_id != organization.id:
+        raise PermissionDenied("Collection does not belong to this organization.")
+    return Collection.objects.select_for_update().get(
+        organization=organization,
+        id=collection.id,
+    )
 
 
 def _default_variant_for_offering(
@@ -505,6 +699,55 @@ def _sync_default_variant(
     return default_variant
 
 
+def _sync_collection_offerings(
+    *,
+    organization,
+    collection: Collection,
+    facility,
+    offerings,
+    user,
+) -> None:
+    selected_offerings = []
+    seen_ids = set()
+    for offering in offerings:
+        if offering.id in seen_ids:
+            continue
+        seen_ids.add(offering.id)
+        selected_offerings.append(offering)
+
+    CollectionItem.objects.filter(
+        organization=organization,
+        collection=collection,
+    ).exclude(offering_id__in=seen_ids).delete()
+
+    for index, offering in enumerate(selected_offerings, start=1):
+        item, created = CollectionItem.objects.get_or_create(
+            organization=organization,
+            collection=collection,
+            offering=offering,
+            defaults={
+                "facility": facility,
+                "sort_order": index,
+                "created_by": user,
+                "updated_by": user,
+            },
+        )
+        if not created:
+            item.facility = facility
+            item.sort_order = index
+            item.status = RecordStatus.ACTIVE
+            item.updated_by = user
+            item.save(
+                update_fields=[
+                    "facility",
+                    "sort_order",
+                    "status",
+                    "updated_by",
+                    "updated_at",
+                ]
+            )
+
+
 def _unique_offering_slug(*, organization, name: str, code: str, exclude=None) -> str:
     base_slug = slugify(name) or slugify(code) or "offering"
     base_slug = base_slug[:180]
@@ -517,6 +760,24 @@ def _unique_offering_slug(*, organization, name: str, code: str, exclude=None) -
         suffix = f"-{counter}"
         candidate = f"{base_slug[: 180 - len(suffix)]}{suffix}"
         queryset = Offering.objects.filter(organization=organization, slug=candidate)
+        if exclude is not None:
+            queryset = queryset.exclude(id=exclude.id)
+        counter += 1
+    return candidate
+
+
+def _unique_collection_slug(*, organization, name: str, exclude=None) -> str:
+    base_slug = slugify(name) or "collection"
+    base_slug = base_slug[:160]
+    candidate = base_slug
+    counter = 2
+    queryset = Collection.objects.filter(organization=organization, slug__iexact=candidate)
+    if exclude is not None:
+        queryset = queryset.exclude(id=exclude.id)
+    while queryset.exists():
+        suffix = f"-{counter}"
+        candidate = f"{base_slug[: 160 - len(suffix)]}{suffix}"
+        queryset = Collection.objects.filter(organization=organization, slug__iexact=candidate)
         if exclude is not None:
             queryset = queryset.exclude(id=exclude.id)
         counter += 1

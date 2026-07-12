@@ -67,6 +67,7 @@ TERMINOLOGY_PACKS: dict[str, FacilityTerminologyPack] = {
             {
                 "admin-products": "Products",
                 "admin-categories": "Categories",
+                "admin-collections": "Collections",
                 "admin-orders": "Orders",
                 "admin-inventory": "Inventory",
             }
@@ -89,6 +90,7 @@ TERMINOLOGY_PACKS: dict[str, FacilityTerminologyPack] = {
             {
                 "admin-products": "Products",
                 "admin-categories": "Categories",
+                "admin-collections": "Collections",
                 "admin-orders": "Orders",
                 "admin-inventory": "Inventory",
             }
@@ -114,6 +116,7 @@ TERMINOLOGY_PACKS: dict[str, FacilityTerminologyPack] = {
             {
                 "admin-products": "Products",
                 "admin-categories": "Departments",
+                "admin-collections": "Collections",
                 "admin-orders": "Sales",
                 "admin-inventory": "Stock",
             }
@@ -136,6 +139,7 @@ TERMINOLOGY_PACKS: dict[str, FacilityTerminologyPack] = {
             {
                 "admin-products": "Products",
                 "admin-categories": "Departments",
+                "admin-collections": "Collections",
                 "admin-orders": "Sales",
                 "admin-inventory": "Stock",
             }
@@ -161,6 +165,7 @@ TERMINOLOGY_PACKS: dict[str, FacilityTerminologyPack] = {
             {
                 "admin-products": "Items",
                 "admin-categories": "Item groups",
+                "admin-collections": "Collections",
                 "admin-orders": "Fulfilment orders",
                 "admin-inventory": "Stock",
             }
@@ -183,6 +188,7 @@ TERMINOLOGY_PACKS: dict[str, FacilityTerminologyPack] = {
             {
                 "admin-products": "Items",
                 "admin-categories": "Item groups",
+                "admin-collections": "Collections",
                 "admin-orders": "Fulfilment orders",
                 "admin-inventory": "Stock",
             }
@@ -208,6 +214,7 @@ TERMINOLOGY_PACKS: dict[str, FacilityTerminologyPack] = {
             {
                 "admin-products": "Services",
                 "admin-categories": "Service areas",
+                "admin-collections": "Collections",
                 "admin-orders": "Work requests",
                 "admin-inventory": "Resources",
             }
@@ -230,6 +237,7 @@ TERMINOLOGY_PACKS: dict[str, FacilityTerminologyPack] = {
             {
                 "admin-products": "Services",
                 "admin-categories": "Service areas",
+                "admin-collections": "Collections",
                 "admin-orders": "Work requests",
                 "admin-inventory": "Resources",
             }

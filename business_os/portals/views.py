@@ -6,22 +6,32 @@ from django.http import HttpResponseBadRequest, HttpResponseNotAllowed
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 
-from business_os.apps.catalogue.forms import CategoryAdminForm, OfferingAdminForm
+from business_os.apps.catalogue.forms import (
+    CategoryAdminForm,
+    CollectionAdminForm,
+    OfferingAdminForm,
+)
 from business_os.apps.catalogue.selectors import (
     admin_categories_for_organization,
     admin_category_for_organization,
+    admin_collection_for_organization,
+    admin_collections_for_organization,
     admin_offering_for_organization,
     admin_offerings_for_organization,
     visible_offerings_for_organization,
 )
 from business_os.apps.catalogue.services import (
     archive_category,
+    archive_collection,
     archive_offering,
     create_category,
+    create_collection,
     create_offering,
     restore_category,
+    restore_collection,
     restore_offering,
     update_category,
+    update_collection,
     update_offering,
 )
 from business_os.apps.commerce.models import Order
@@ -81,11 +91,23 @@ def _admin_urls(organization):
         "products_create": f"{base}/products/new/",
         "categories": f"{base}/categories/",
         "categories_create": f"{base}/categories/new/",
+        "collections": f"{base}/collections/",
+        "collections_create": f"{base}/collections/new/",
         "inventory": f"{base}/inventory/",
         "orders": f"{base}/orders/",
         "payments": f"{base}/payments/",
         "analytics": f"{base}/analytics/",
         "settings": f"{base}/settings/",
+    }
+
+
+def _collection_urls(organization, collection):
+    base = f"/o/{organization.slug}/collections/{collection.id}"
+    return {
+        "detail": f"{base}/",
+        "edit": f"{base}/edit/",
+        "archive": f"{base}/archive/",
+        "restore": f"{base}/restore/",
     }
 
 
@@ -124,6 +146,14 @@ def _admin_category_context(request, organization_slug: str, category_id):
     organization, navigation = _organization_context(request, organization_slug)
     category = get_object_or_404(admin_category_for_organization(organization, category_id))
     return organization, navigation, category
+
+
+def _admin_collection_context(request, organization_slug: str, collection_id):
+    organization, navigation = _organization_context(request, organization_slug)
+    collection = get_object_or_404(
+        admin_collection_for_organization(organization, collection_id)
+    )
+    return organization, navigation, collection
 
 
 def _admin_offering_context(request, organization_slug: str, offering_id):
@@ -170,6 +200,24 @@ def _offering_audit_payload(offering):
         "visible_on_website": offering.visible_on_website,
         "whatsapp_inquiry_enabled": offering.whatsapp_inquiry_enabled,
         "facility_id": str(offering.facility_id) if offering.facility_id else "",
+    }
+
+
+def _collection_audit_payload(collection):
+    offering_ids = [
+        str(offering_id)
+        for offering_id in collection.items.order_by("sort_order").values_list(
+            "offering_id",
+            flat=True,
+        )
+    ]
+    return {
+        "name": collection.name,
+        "slug": collection.slug,
+        "status": collection.status,
+        "offering_ids": offering_ids,
+        "offering_count": len(offering_ids),
+        "facility_id": str(collection.facility_id) if collection.facility_id else "",
     }
 
 
@@ -670,6 +718,212 @@ def admin_category_restore(request, organization_slug: str, category_id):
         f"{request.facility_profile.terms['category']} restored as draft.",
     )
     return redirect(_category_urls(organization, category)["detail"])
+
+
+def admin_collections(request, organization_slug: str):
+    organization, navigation = _organization_context(request, organization_slug)
+    collections = admin_collections_for_organization(organization)
+    return render(
+        request,
+        "admin_portal/collections.html",
+        _admin_payload(
+            request,
+            organization,
+            navigation,
+            collections=collections,
+            title=_admin_page_title(request, "admin-collections", "Collections"),
+        ),
+    )
+
+
+def admin_collection_create(request, organization_slug: str):
+    if request.method not in {"GET", "POST"}:
+        return HttpResponseNotAllowed(["GET", "POST"])
+
+    organization, navigation = _organization_context(request, organization_slug)
+    form = CollectionAdminForm(
+        request.POST if request.method == "POST" else None,
+        organization=organization,
+        facility_profile=request.facility_profile,
+    )
+    if request.method == "POST" and form.is_valid():
+        try:
+            collection = create_collection(
+                organization=organization,
+                facility=request.facility,
+                created_by=request.user,
+                **form.to_service_kwargs(),
+            )
+        except ValueError as exc:
+            form.add_error(None, str(exc))
+        else:
+            audit_event(
+                action="catalogue.collection.created",
+                request=request,
+                organization=organization,
+                facility=request.facility,
+                actor=request.user,
+                target=AuditTarget("catalogue_collection", str(collection.id)),
+                after=_collection_audit_payload(collection),
+                source="business_admin",
+            )
+            messages.success(request, "Collection created.")
+            return redirect(_collection_urls(organization, collection)["detail"])
+
+    return render(
+        request,
+        "admin_portal/collection_form.html",
+        _admin_payload(
+            request,
+            organization,
+            navigation,
+            form=form,
+            form_schema=form.schema,
+            title=form.schema.page_title,
+        ),
+    )
+
+
+def admin_collection_detail(request, organization_slug: str, collection_id):
+    organization, navigation, collection = _admin_collection_context(
+        request,
+        organization_slug,
+        collection_id,
+    )
+    collection_items = collection.items.order_by("sort_order").select_related("offering")
+    return render(
+        request,
+        "admin_portal/collection_detail.html",
+        _admin_payload(
+            request,
+            organization,
+            navigation,
+            collection=collection,
+            collection_urls=_collection_urls(organization, collection),
+            collection_items=collection_items,
+            title=collection.name,
+            is_archived=collection.status == RecordStatus.ARCHIVED,
+        ),
+    )
+
+
+def admin_collection_edit(request, organization_slug: str, collection_id):
+    if request.method not in {"GET", "POST"}:
+        return HttpResponseNotAllowed(["GET", "POST"])
+
+    organization, navigation, collection = _admin_collection_context(
+        request,
+        organization_slug,
+        collection_id,
+    )
+    form = CollectionAdminForm(
+        request.POST if request.method == "POST" else None,
+        organization=organization,
+        facility_profile=request.facility_profile,
+        instance=collection,
+    )
+    if request.method == "POST" and form.is_valid():
+        before = _collection_audit_payload(collection)
+        try:
+            collection = update_collection(
+                organization=organization,
+                collection=collection,
+                facility=request.facility,
+                updated_by=request.user,
+                **form.to_service_kwargs(),
+            )
+        except ValueError as exc:
+            form.add_error(None, str(exc))
+        else:
+            audit_event(
+                action="catalogue.collection.updated",
+                request=request,
+                organization=organization,
+                facility=request.facility,
+                actor=request.user,
+                target=AuditTarget("catalogue_collection", str(collection.id)),
+                before=before,
+                after=_collection_audit_payload(collection),
+                source="business_admin",
+            )
+            messages.success(request, "Collection updated.")
+            return redirect(_collection_urls(organization, collection)["detail"])
+
+    return render(
+        request,
+        "admin_portal/collection_form.html",
+        _admin_payload(
+            request,
+            organization,
+            navigation,
+            form=form,
+            form_schema=form.schema,
+            title=form.schema.page_title,
+            collection=collection,
+            cancel_url=_collection_urls(organization, collection)["detail"],
+            return_url=_collection_urls(organization, collection)["detail"],
+        ),
+    )
+
+
+def admin_collection_archive(request, organization_slug: str, collection_id):
+    if request.method != "POST":
+        return HttpResponseNotAllowed(["POST"])
+
+    organization, _navigation, collection = _admin_collection_context(
+        request,
+        organization_slug,
+        collection_id,
+    )
+    before = _collection_audit_payload(collection)
+    collection = archive_collection(
+        organization=organization,
+        collection=collection,
+        archived_by=request.user,
+    )
+    audit_event(
+        action="catalogue.collection.archived",
+        request=request,
+        organization=organization,
+        facility=request.facility,
+        actor=request.user,
+        target=AuditTarget("catalogue_collection", str(collection.id)),
+        before=before,
+        after=_collection_audit_payload(collection),
+        source="business_admin",
+    )
+    messages.success(request, "Collection archived.")
+    return redirect(_collection_urls(organization, collection)["detail"])
+
+
+def admin_collection_restore(request, organization_slug: str, collection_id):
+    if request.method != "POST":
+        return HttpResponseNotAllowed(["POST"])
+
+    organization, _navigation, collection = _admin_collection_context(
+        request,
+        organization_slug,
+        collection_id,
+    )
+    before = _collection_audit_payload(collection)
+    collection = restore_collection(
+        organization=organization,
+        collection=collection,
+        restored_by=request.user,
+    )
+    audit_event(
+        action="catalogue.collection.restored",
+        request=request,
+        organization=organization,
+        facility=request.facility,
+        actor=request.user,
+        target=AuditTarget("catalogue_collection", str(collection.id)),
+        before=before,
+        after=_collection_audit_payload(collection),
+        source="business_admin",
+    )
+    messages.success(request, "Collection restored as draft.")
+    return redirect(_collection_urls(organization, collection)["detail"])
 
 
 def admin_inventory(request, organization_slug: str):

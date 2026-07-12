@@ -13,6 +13,7 @@ MODULE_CONFIG = {
     "navigation": [
         {"label": "Products", "url_name": "admin-products", "icon": "package"},
         {"label": "Categories", "url_name": "admin-categories", "icon": "tags"},
+        {"label": "Collections", "url_name": "admin-collections", "icon": "layers"},
     ],
     "website_contributions": [
         {"type": "page", "slug": "shop", "capability": "catalogue.basic"},

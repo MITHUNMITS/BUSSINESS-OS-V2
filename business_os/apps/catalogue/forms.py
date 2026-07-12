@@ -10,7 +10,7 @@ from django.conf import settings
 from django.db.models import Q
 from django.utils.text import slugify
 
-from business_os.apps.catalogue.models import Category, Offering, OfferingVariant
+from business_os.apps.catalogue.models import Category, Collection, Offering, OfferingVariant
 from business_os.apps.core.models import RecordStatus
 from business_os.apps.organizations.facility_profiles import FacilityProfile
 from business_os.apps.organizations.models import Facility, Organization
@@ -33,6 +33,17 @@ class OfferingFormSchema:
 @dataclass(frozen=True)
 class CategoryFormSchema:
     """Facility-aware schema for the first Business Admin category form."""
+
+    page_title: str
+    eyebrow: str
+    submit_label: str
+    labels: dict[str, str]
+    help_texts: dict[str, str]
+
+
+@dataclass(frozen=True)
+class CollectionFormSchema:
+    """Facility-aware schema for the first Business Admin collection form."""
 
     page_title: str
     eyebrow: str
@@ -85,6 +96,37 @@ def resolve_offering_form_schema(
             "whatsapp_inquiry_enabled": (
                 "Allows customer inquiry flows where the catalogue module supports them."
             ),
+        },
+    )
+
+
+def resolve_collection_form_schema(
+    *,
+    facility_profile: FacilityProfile,
+    mode: str = "create",
+) -> CollectionFormSchema:
+    offerings = facility_profile.terms["offerings"]
+    is_edit = mode == "edit"
+
+    return CollectionFormSchema(
+        page_title=f"{'Edit' if is_edit else 'Add'} collection",
+        eyebrow=f"Collections / {'Edit' if is_edit else 'New'}",
+        submit_label=f"{'Save' if is_edit else 'Create'} collection",
+        labels={
+            "name": "Collection name",
+            "slug": "Collection URL slug",
+            "description": "Collection description",
+            "offerings": f"{offerings} in collection",
+            "status": "Publishing status",
+        },
+        help_texts={
+            "slug": (
+                "Optional public URL-safe slug for this collection. "
+                "Leave blank to generate one from the name."
+            ),
+            "description": "Optional description used to explain this curated group.",
+            "offerings": f"Select the {offerings.lower()} that belong in this collection.",
+            "status": "Active collections are ready for use; drafts stay internal.",
         },
     )
 
@@ -358,6 +400,95 @@ class CategoryAdminForm(forms.Form):
         self.fields["description"].widget.attrs.setdefault("rows", 5)
 
 
+class CollectionAdminForm(forms.Form):
+    name = forms.CharField(max_length=160)
+    slug = forms.SlugField(max_length=160, required=False)
+    description = forms.CharField(required=False, widget=forms.Textarea)
+    offerings = forms.ModelMultipleChoiceField(
+        queryset=Offering.objects.none(),
+        required=False,
+    )
+    status = forms.ChoiceField(
+        choices=(
+            (RecordStatus.ACTIVE, "Publish now"),
+            (RecordStatus.DRAFT, "Save as draft"),
+        ),
+    )
+
+    def __init__(
+        self,
+        *args: Any,
+        organization: Organization,
+        facility_profile: FacilityProfile,
+        instance: Collection | None = None,
+        **kwargs: Any,
+    ) -> None:
+        self.organization = organization
+        self.facility_profile = facility_profile
+        self.facility = facility_profile.facility
+        self.instance = instance
+        self.schema = resolve_collection_form_schema(
+            facility_profile=facility_profile,
+            mode="edit" if instance is not None else "create",
+        )
+        if instance is not None and not args and "initial" not in kwargs:
+            kwargs["initial"] = _initial_for_collection(instance)
+        super().__init__(*args, **kwargs)
+
+        self.fields["offerings"].queryset = _offering_queryset_for_facility(
+            organization=organization,
+            facility=self.facility,
+        ).exclude(status__in=[RecordStatus.ARCHIVED, RecordStatus.DELETED])
+        self.fields["status"].initial = RecordStatus.ACTIVE
+
+        for name, label in self.schema.labels.items():
+            self.fields[name].label = label
+        for name, help_text in self.schema.help_texts.items():
+            self.fields[name].help_text = help_text
+
+        self._apply_widget_classes()
+
+    def clean_slug(self) -> str:
+        raw_slug = self.cleaned_data["slug"].strip()
+        if not raw_slug:
+            return ""
+        slug = slugify(raw_slug)
+        conflicts = Collection.objects.filter(
+            organization=self.organization,
+            slug__iexact=slug,
+        )
+        if self.instance is not None:
+            conflicts = conflicts.exclude(id=self.instance.id)
+        if conflicts.exists():
+            raise forms.ValidationError("A collection with this slug already exists.")
+        return slug
+
+    def to_service_kwargs(self) -> dict[str, Any]:
+        return {
+            "name": self.cleaned_data["name"].strip(),
+            "slug": self.cleaned_data["slug"],
+            "description": self.cleaned_data["description"].strip(),
+            "offerings": list(self.cleaned_data["offerings"]),
+            "status": self.cleaned_data["status"],
+        }
+
+    def _apply_widget_classes(self) -> None:
+        input_class = "input input-bordered w-full"
+        textarea_class = "textarea textarea-bordered min-h-28 w-full"
+        select_class = "select select-bordered w-full"
+        multi_select_class = "select select-bordered min-h-36 w-full"
+
+        for field_name in ("name", "slug", "status"):
+            self.fields[field_name].widget.attrs.setdefault(
+                "class",
+                select_class if field_name == "status" else input_class,
+            )
+        self.fields["description"].widget.attrs.setdefault("class", textarea_class)
+        self.fields["description"].widget.attrs.setdefault("rows", 5)
+        self.fields["offerings"].widget.attrs.setdefault("class", multi_select_class)
+        self.fields["offerings"].widget.attrs.setdefault("size", 8)
+
+
 def _offering_type_for_facility(facility_profile: FacilityProfile) -> str:
     if facility_profile.facility_type == Facility.FacilityType.OFFICE:
         return Offering.OfferingType.SERVICE
@@ -404,6 +535,16 @@ def _initial_for_category(category: Category) -> dict[str, Any]:
     }
 
 
+def _initial_for_collection(collection: Collection) -> dict[str, Any]:
+    return {
+        "name": collection.name,
+        "slug": collection.slug,
+        "description": collection.description,
+        "offerings": list(collection.offerings.values_list("id", flat=True)),
+        "status": collection.status,
+    }
+
+
 def _category_queryset_for_facility(
     *,
     organization: Organization,
@@ -429,6 +570,17 @@ def _category_parent_queryset(
         return queryset.order_by("sort_order", "name")
     excluded_ids = {instance.id, *_category_descendant_ids(instance)}
     return queryset.exclude(id__in=excluded_ids).order_by("sort_order", "name")
+
+
+def _offering_queryset_for_facility(
+    *,
+    organization: Organization,
+    facility: Facility | None,
+):
+    queryset = Offering.objects.filter(organization=organization)
+    if facility is None:
+        return queryset.filter(facility__isnull=True).order_by("name")
+    return queryset.filter(Q(facility__isnull=True) | Q(facility=facility)).order_by("name")
 
 
 def _category_descendant_ids(category: Category) -> set[Any]:

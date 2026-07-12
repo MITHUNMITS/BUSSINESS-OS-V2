@@ -84,7 +84,8 @@ Relevant tests:
 
 ## Separate Future Features
 
-- Collections, image/media, option, variant, add-on, and price-list admin CRUD.
+- Basic collection list/create/detail/edit/archive/restore and offering-membership assignment are recorded separately in `19-catalogue-collection-admin-lifecycle-completion.md`.
+- Image/media, option, variant, add-on, and price-list admin CRUD.
 - Public category pages and SEO metadata.
 - Filtering, pagination, saved views, column controls, export, import, and bulk actions.
 - Entitlement-gated advanced catalogue fields and submodules.

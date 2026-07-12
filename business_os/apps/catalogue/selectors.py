@@ -1,4 +1,4 @@
-from business_os.apps.catalogue.models import Category, Offering
+from business_os.apps.catalogue.models import Category, Collection, Offering
 from business_os.apps.core.models import RecordStatus
 
 
@@ -17,6 +17,26 @@ def admin_category_for_organization(organization, category_id):
         .exclude(status=RecordStatus.DELETED)
         .filter(id=category_id)
         .select_related("parent", "facility", "created_by", "updated_by")
+    )
+
+
+def admin_collections_for_organization(organization):
+    return (
+        Collection.objects.for_organization(organization)
+        .exclude(status=RecordStatus.DELETED)
+        .select_related("facility")
+        .prefetch_related("items", "offerings")
+        .order_by("name")
+    )
+
+
+def admin_collection_for_organization(organization, collection_id):
+    return (
+        Collection.objects.for_organization(organization)
+        .exclude(status=RecordStatus.DELETED)
+        .filter(id=collection_id)
+        .select_related("facility", "created_by", "updated_by")
+        .prefetch_related("items__offering", "offerings")
     )
 
 

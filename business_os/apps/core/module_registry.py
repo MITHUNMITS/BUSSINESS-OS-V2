@@ -95,6 +95,7 @@ def _business_admin_url(*, organization: Any, url_name: str) -> str:
         "admin-website": f"{base}/website/",
         "admin-products": f"{base}/products/",
         "admin-categories": f"{base}/categories/",
+        "admin-collections": f"{base}/collections/",
         "admin-inventory": f"{base}/inventory/",
         "admin-orders": f"{base}/orders/",
         "admin-payments": f"{base}/payments/",

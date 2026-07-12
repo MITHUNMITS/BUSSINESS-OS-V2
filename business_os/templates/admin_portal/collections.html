@@ -1,0 +1,51 @@
+{% extends "admin_portal/base.html" %}
+{% load i18n %}
+
+{% block page_title %}{{ title }}{% endblock %}
+
+{% block content %}
+{% with terms=facility_profile.terms %}
+<div class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+  <div>
+    <p class="text-sm text-base-content/60">{% trans "Catalogue admin" %}</p>
+    <h3 class="text-lg font-semibold">{{ title }}</h3>
+  </div>
+  <a class="btn btn-primary" href="{{ admin_urls.collections_create }}">{% trans "Add collection" %}</a>
+</div>
+
+{% if collections %}
+  <div class="rounded-lg border border-base-300 bg-base-100">
+    <div class="border-b border-base-300 p-4">
+      <label class="input input-bordered flex items-center gap-2">
+        <span class="text-base-content/50">{% trans "Search" %}</span>
+        <input class="grow" type="search" aria-label="Search {{ title|lower }}">
+      </label>
+    </div>
+    <div class="overflow-x-auto">
+      <table class="table">
+        <thead><tr><th>{% trans "Collection" %}</th><th>{% trans "Slug" %}</th><th>{{ terms.offerings }}</th><th>{% trans "Status" %}</th><th>{% trans "Actions" %}</th></tr></thead>
+        <tbody>
+        {% for collection in collections %}
+          <tr>
+            <td><a class="link font-medium" href="{{ admin_urls.collections }}{{ collection.id }}/">{{ collection.name }}</a></td>
+            <td>{{ collection.slug }}</td>
+            <td>{{ collection.offerings.count }}</td>
+            <td>{% include "components/status_badge.html" with status=collection.status %}</td>
+            <td>
+              <div class="flex flex-wrap gap-2">
+                <a class="btn btn-xs btn-outline" href="{{ admin_urls.collections }}{{ collection.id }}/">{% trans "View" %}</a>
+                <a class="btn btn-xs btn-ghost" href="{{ admin_urls.collections }}{{ collection.id }}/edit/">{% trans "Edit" %}</a>
+              </div>
+            </td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+{% else %}
+  {% blocktrans with offerings=terms.offerings|lower asvar empty_message %}Create collections to curate groups of {{ offerings }} for campaigns, public sections, and catalogue merchandising.{% endblocktrans %}
+  {% include "components/empty_state.html" with title="No collections yet" message=empty_message action_label="Add collection" action_url=admin_urls.collections_create %}
+{% endif %}
+{% endwith %}
+{% endblock %}
