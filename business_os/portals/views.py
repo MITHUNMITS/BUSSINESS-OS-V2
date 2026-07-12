@@ -8,12 +8,18 @@ from django.utils import timezone
 
 from business_os.apps.catalogue.forms import OfferingAdminForm
 from business_os.apps.catalogue.selectors import (
+    admin_offering_for_organization,
     admin_offerings_for_organization,
     visible_offerings_for_organization,
 )
-from business_os.apps.catalogue.services import create_offering
+from business_os.apps.catalogue.services import (
+    archive_offering,
+    create_offering,
+    restore_offering,
+    update_offering,
+)
 from business_os.apps.commerce.models import Order
-from business_os.apps.core.models import PlatformPermission, SupportAccessScope
+from business_os.apps.core.models import PlatformPermission, RecordStatus, SupportAccessScope
 from business_os.apps.core.module_registry import get_navigation, load_module_definitions
 from business_os.apps.core.services import (
     AuditTarget,
@@ -76,6 +82,16 @@ def _admin_urls(organization):
     }
 
 
+def _offering_urls(organization, offering):
+    base = f"/o/{organization.slug}/products/{offering.id}"
+    return {
+        "detail": f"{base}/",
+        "edit": f"{base}/edit/",
+        "archive": f"{base}/archive/",
+        "restore": f"{base}/restore/",
+    }
+
+
 def _admin_payload(request, organization, navigation, **extra):
     payload = {
         "organization": organization,
@@ -85,6 +101,14 @@ def _admin_payload(request, organization, navigation, **extra):
     }
     payload.update(extra)
     return payload
+
+
+def _admin_offering_context(request, organization_slug: str, offering_id):
+    organization, navigation = _organization_context(request, organization_slug)
+    offering = get_object_or_404(
+        admin_offering_for_organization(organization, offering_id)
+    )
+    return organization, navigation, offering
 
 
 def _admin_page_title(request, url_name: str, default: str) -> str:
@@ -110,6 +134,20 @@ def _support_session_for_organization(request, organization: Organization):
     )
     record_support_access(request=request, support_session=support_session)
     return support_session
+
+
+def _offering_audit_payload(offering):
+    return {
+        "name": offering.name,
+        "code": offering.code,
+        "status": offering.status,
+        "offering_type": offering.offering_type,
+        "base_price": str(offering.base_price),
+        "currency": offering.currency,
+        "visible_on_website": offering.visible_on_website,
+        "whatsapp_inquiry_enabled": offering.whatsapp_inquiry_enabled,
+        "facility_id": str(offering.facility_id) if offering.facility_id else "",
+    }
 
 
 def admin_dashboard(request, organization_slug: str):
@@ -235,6 +273,154 @@ def admin_product_create(request, organization_slug: str):
             title=form.schema.page_title,
         ),
     )
+
+
+def admin_product_detail(request, organization_slug: str, offering_id):
+    organization, navigation, offering = _admin_offering_context(
+        request,
+        organization_slug,
+        offering_id,
+    )
+    default_variant = offering.variants.filter(is_default=True).order_by("created_at").first()
+    return render(
+        request,
+        "admin_portal/product_detail.html",
+        _admin_payload(
+            request,
+            organization,
+            navigation,
+            offering=offering,
+            offering_urls=_offering_urls(organization, offering),
+            default_variant=default_variant,
+            title=offering.name,
+            is_archived=offering.status == RecordStatus.ARCHIVED,
+        ),
+    )
+
+
+def admin_product_edit(request, organization_slug: str, offering_id):
+    if request.method not in {"GET", "POST"}:
+        return HttpResponseNotAllowed(["GET", "POST"])
+
+    organization, navigation, offering = _admin_offering_context(
+        request,
+        organization_slug,
+        offering_id,
+    )
+    form = OfferingAdminForm(
+        request.POST if request.method == "POST" else None,
+        organization=organization,
+        facility_profile=request.facility_profile,
+        instance=offering,
+    )
+    if request.method == "POST" and form.is_valid():
+        before = _offering_audit_payload(offering)
+        try:
+            offering = update_offering(
+                organization=organization,
+                offering=offering,
+                facility=request.facility,
+                updated_by=request.user,
+                **form.to_service_kwargs(),
+            )
+        except ValueError as exc:
+            form.add_error(None, str(exc))
+        else:
+            audit_event(
+                action="catalogue.offering.updated",
+                request=request,
+                organization=organization,
+                facility=request.facility,
+                actor=request.user,
+                target=AuditTarget("catalogue_offering", str(offering.id)),
+                before=before,
+                after=_offering_audit_payload(offering),
+                source="business_admin",
+            )
+            messages.success(
+                request,
+                f"{request.facility_profile.terms['offering']} updated.",
+            )
+            return redirect(_offering_urls(organization, offering)["detail"])
+
+    return render(
+        request,
+        "admin_portal/product_form.html",
+        _admin_payload(
+            request,
+            organization,
+            navigation,
+            form=form,
+            form_schema=form.schema,
+            title=form.schema.page_title,
+            offering=offering,
+            cancel_url=_offering_urls(organization, offering)["detail"],
+            return_url=_offering_urls(organization, offering)["detail"],
+        ),
+    )
+
+
+def admin_product_archive(request, organization_slug: str, offering_id):
+    if request.method != "POST":
+        return HttpResponseNotAllowed(["POST"])
+
+    organization, _navigation, offering = _admin_offering_context(
+        request,
+        organization_slug,
+        offering_id,
+    )
+    before = _offering_audit_payload(offering)
+    offering = archive_offering(
+        organization=organization,
+        offering=offering,
+        archived_by=request.user,
+    )
+    audit_event(
+        action="catalogue.offering.archived",
+        request=request,
+        organization=organization,
+        facility=request.facility,
+        actor=request.user,
+        target=AuditTarget("catalogue_offering", str(offering.id)),
+        before=before,
+        after=_offering_audit_payload(offering),
+        source="business_admin",
+    )
+    messages.success(request, f"{request.facility_profile.terms['offering']} archived.")
+    return redirect(_offering_urls(organization, offering)["detail"])
+
+
+def admin_product_restore(request, organization_slug: str, offering_id):
+    if request.method != "POST":
+        return HttpResponseNotAllowed(["POST"])
+
+    organization, _navigation, offering = _admin_offering_context(
+        request,
+        organization_slug,
+        offering_id,
+    )
+    before = _offering_audit_payload(offering)
+    offering = restore_offering(
+        organization=organization,
+        offering=offering,
+        restored_by=request.user,
+    )
+    audit_event(
+        action="catalogue.offering.restored",
+        request=request,
+        organization=organization,
+        facility=request.facility,
+        actor=request.user,
+        target=AuditTarget("catalogue_offering", str(offering.id)),
+        before=before,
+        after=_offering_audit_payload(offering),
+        source="business_admin",
+    )
+    messages.success(
+        request,
+        f"{request.facility_profile.terms['offering']} restored as draft.",
+    )
+    return redirect(_offering_urls(organization, offering)["detail"])
 
 
 def admin_categories(request, organization_slug: str):

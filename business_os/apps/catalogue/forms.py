@@ -18,7 +18,7 @@ OFFERING_CODE_PATTERN = re.compile(r"^[A-Z0-9][A-Z0-9._-]{0,79}$")
 
 @dataclass(frozen=True)
 class OfferingFormSchema:
-    """Facility-aware schema for the first Business Admin offering create form."""
+    """Facility-aware schema for the first Business Admin offering form."""
 
     page_title: str
     eyebrow: str
@@ -28,15 +28,20 @@ class OfferingFormSchema:
     help_texts: dict[str, str]
 
 
-def resolve_offering_form_schema(*, facility_profile: FacilityProfile) -> OfferingFormSchema:
+def resolve_offering_form_schema(
+    *,
+    facility_profile: FacilityProfile,
+    mode: str = "create",
+) -> OfferingFormSchema:
     offering = facility_profile.terms["offering"]
     offerings = facility_profile.terms["offerings"]
     offering_lower = offering.lower()
+    is_edit = mode == "edit"
 
     return OfferingFormSchema(
-        page_title=f"Add {offering_lower}",
-        eyebrow=f"{offerings} / New",
-        submit_label=f"Create {offering_lower}",
+        page_title=f"{'Edit' if is_edit else 'Add'} {offering_lower}",
+        eyebrow=f"{offerings} / {'Edit' if is_edit else 'New'}",
+        submit_label=f"{'Save' if is_edit else 'Create'} {offering_lower}",
         offering_type=_offering_type_for_facility(facility_profile),
         labels={
             "name": f"{offering} name",
@@ -93,11 +98,18 @@ class OfferingAdminForm(forms.Form):
         *args: Any,
         organization: Organization,
         facility_profile: FacilityProfile,
+        instance: Offering | None = None,
         **kwargs: Any,
     ) -> None:
         self.organization = organization
         self.facility_profile = facility_profile
-        self.schema = resolve_offering_form_schema(facility_profile=facility_profile)
+        self.instance = instance
+        self.schema = resolve_offering_form_schema(
+            facility_profile=facility_profile,
+            mode="edit" if instance is not None else "create",
+        )
+        if instance is not None and not args and "initial" not in kwargs:
+            kwargs["initial"] = _initial_for_offering(instance)
         super().__init__(*args, **kwargs)
 
         self.fields["currency"].choices = [
@@ -121,13 +133,24 @@ class OfferingAdminForm(forms.Form):
                 "starting with a letter or number."
             )
 
-        if Offering.objects.filter(organization=self.organization, code__iexact=code).exists():
+        offering_conflicts = Offering.objects.filter(
+            organization=self.organization,
+            code__iexact=code,
+        )
+        if self.instance is not None:
+            offering_conflicts = offering_conflicts.exclude(id=self.instance.id)
+        if offering_conflicts.exists():
             offering = self.facility_profile.terms["offering"].lower()
             raise forms.ValidationError(f"A {offering} with this code already exists.")
-        if OfferingVariant.objects.filter(
+
+        variant_conflicts = OfferingVariant.objects.filter(
             organization=self.organization,
             sku__iexact=code,
-        ).exists():
+        )
+        default_variant = _default_variant_for_offering(self.instance)
+        if default_variant is not None:
+            variant_conflicts = variant_conflicts.exclude(id=default_variant.id)
+        if variant_conflicts.exists():
             raise forms.ValidationError("A variant with this SKU already exists.")
         return code
 
@@ -170,3 +193,31 @@ def _offering_type_for_facility(facility_profile: FacilityProfile) -> str:
     if facility_profile.facility_type == Facility.FacilityType.OFFICE:
         return Offering.OfferingType.SERVICE
     return Offering.OfferingType.PRODUCT
+
+
+def _initial_for_offering(offering: Offering) -> dict[str, Any]:
+    return {
+        "name": offering.name,
+        "code": offering.code,
+        "summary": offering.summary,
+        "description": offering.description,
+        "base_price": offering.base_price,
+        "currency": offering.currency,
+        "status": offering.status,
+        "visible_on_website": offering.visible_on_website,
+        "whatsapp_inquiry_enabled": offering.whatsapp_inquiry_enabled,
+    }
+
+
+def _default_variant_for_offering(offering: Offering | None) -> OfferingVariant | None:
+    if offering is None or offering.pk is None:
+        return None
+    return (
+        OfferingVariant.objects.filter(
+            organization=offering.organization,
+            offering=offering,
+            is_default=True,
+        )
+        .order_by("created_at")
+        .first()
+    )

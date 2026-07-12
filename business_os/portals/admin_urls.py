@@ -15,6 +15,26 @@ urlpatterns = [
         views.admin_product_create,
         name="admin-products-create",
     ),
+    path(
+        "o/<slug:organization_slug>/products/<uuid:offering_id>/",
+        views.admin_product_detail,
+        name="admin-products-detail",
+    ),
+    path(
+        "o/<slug:organization_slug>/products/<uuid:offering_id>/edit/",
+        views.admin_product_edit,
+        name="admin-products-edit",
+    ),
+    path(
+        "o/<slug:organization_slug>/products/<uuid:offering_id>/archive/",
+        views.admin_product_archive,
+        name="admin-products-archive",
+    ),
+    path(
+        "o/<slug:organization_slug>/products/<uuid:offering_id>/restore/",
+        views.admin_product_restore,
+        name="admin-products-restore",
+    ),
     path("o/<slug:organization_slug>/categories/", views.admin_categories, name="admin-categories"),
     path("o/<slug:organization_slug>/inventory/", views.admin_inventory, name="admin-inventory"),
     path("o/<slug:organization_slug>/orders/", views.admin_orders, name="admin-orders"),

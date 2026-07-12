@@ -12,6 +12,16 @@ def admin_offerings_for_organization(organization):
     )
 
 
+def admin_offering_for_organization(organization, offering_id):
+    return (
+        Offering.objects.for_organization(organization)
+        .exclude(status=RecordStatus.DELETED)
+        .filter(id=offering_id)
+        .select_related("category", "facility", "created_by", "updated_by")
+        .prefetch_related("variants", "images")
+    )
+
+
 def visible_offerings_for_organization(organization):
     return (
         Offering.objects.for_organization(organization)

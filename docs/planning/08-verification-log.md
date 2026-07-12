@@ -180,6 +180,55 @@ Known dev-only warning:
 
 - Pytest still reports the existing local staticfiles warning: `No directory at: /app/staticfiles/`.
 
+## 2026-07-12 Catalogue Offering Admin Lifecycle Completion
+
+Affected master-spec sections:
+
+- Section 7: Business Admin UI/UX.
+- Section 11: Forms and controls, especially product/offering form.
+- Section 16: Security and multi-tenancy.
+- Section 27: Facility model and facility-aware adaptation.
+- Section 29: Catalogue & Offerings.
+- Section 39: Database governance.
+- Section 40: Codex delivery protocol.
+
+Implemented:
+
+- Added tenant-scoped Business Admin offering detail, edit, archive, and restore routes.
+- Reused the facility-aware offering form for edit mode with initial values and current-row duplicate exclusions.
+- Added `update_offering`, `archive_offering`, and `restore_offering` service methods.
+- Added detail template and row actions from the offerings list.
+- Added POST-only archive/restore actions.
+- Added default-variant synchronization on edit.
+- Added audit events for update, archive, and restore.
+- Added implementation note `17-catalogue-offering-admin-lifecycle-completion.md`.
+
+Commands run:
+
+- `docker compose run --rm web sh docker/entrypoint.sh pytest tests/integration/test_catalogue_admin_lifecycle.py -q`: passed, 6 tests.
+- `docker compose run --rm web sh docker/entrypoint.sh ruff check business_os/apps/catalogue/forms.py business_os/apps/catalogue/services.py business_os/apps/catalogue/selectors.py business_os/portals/admin_urls.py business_os/portals/views.py tests/integration/test_catalogue_admin_lifecycle.py`: passed.
+- `docker compose run --rm web sh docker/entrypoint.sh pytest tests/integration/test_catalogue_admin_create.py tests/integration/test_catalogue_admin_lifecycle.py -q`: passed, 12 tests.
+- `docker compose run --rm web sh docker/entrypoint.sh python manage.py check`: passed.
+- `docker compose run --rm web sh docker/entrypoint.sh python manage.py makemigrations --check --dry-run`: passed with no changes detected.
+- `docker compose run --rm web sh docker/entrypoint.sh python manage.py migrate --check`: passed with no unapplied migrations.
+- `docker compose run --rm web sh docker/entrypoint.sh ruff check .`: passed.
+- `docker compose run --rm web sh docker/entrypoint.sh pytest`: passed, 60 tests.
+
+Test coverage added:
+
+- Business Admin can view and edit an offering.
+- Edit updates the offering and synchronizes the default variant.
+- Edit writes an audit event with before/after payloads.
+- Duplicate edit code returns a form error and preserves the original offering.
+- Archive is POST-only, hides public visibility, and writes audit.
+- Restore returns the offering as draft, keeps public visibility off, and writes audit.
+- Business member cannot access another organization's offering lifecycle.
+- Office facility edit uses service terms.
+
+Known dev-only warning:
+
+- Pytest still reports the existing local staticfiles warning: `No directory at: /app/staticfiles/`.
+
 ## 2026-07-12 Catalogue Offering Admin Create Completion
 
 Affected master-spec sections:

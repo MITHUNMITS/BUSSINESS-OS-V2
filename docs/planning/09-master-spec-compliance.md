@@ -144,7 +144,7 @@ Pending:
 
 ## Facility-Aware Business OS Behavior
 
-Status: **terminology and first offering-create form implemented for declared scope, deeper facility behavior pending**
+Status: **terminology and basic offering form lifecycle implemented for declared scope, deeper facility behavior pending**
 
 - Organization and facility models exist.
 - Facility type exists for online, retail, warehouse, and office.
@@ -154,6 +154,7 @@ Status: **terminology and first offering-create form implemented for declared sc
 - Cross-organization facility input is rejected.
 - Business Admin navigation labels, dashboard labels, product/order page titles, and empty states use the resolved facility terminology.
 - Business Admin catalogue offering create form resolves labels, help text, submit copy, and offering type from the facility profile.
+- Business Admin catalogue offering edit form reuses the same facility-aware schema and service terminology.
 - Office facilities create service offerings while online/retail/warehouse facilities remain product-compatible for the current catalogue model.
 
 Verified:
@@ -166,8 +167,12 @@ Verified:
 - Resolver is organization/facility scoped.
 - Online product create flow creates a default variant and audit event.
 - Office create flow uses service terms and creates a service offering.
+- Office edit flow uses service terms.
+- Offering edit synchronizes the default variant and writes an audit event.
+- Offering archive/restore use POST-only status transitions and write audit events.
 - Duplicate offering codes are rejected inside the tenant.
 - Business members cannot create offerings for another organization.
+- Business members cannot access another organization's offering lifecycle.
 
 Pending:
 
@@ -176,16 +181,16 @@ Pending:
 
 ## Ecommerce First Slice
 
-Status: **foundation plus first admin create workflow implemented and verified**
+Status: **foundation plus basic offering admin lifecycle implemented and verified**
 
 - Catalogue, variants, inventory-lite, cart, checkout, order, payment intent, and stock reservation foundations exist.
 - Stock reservation test passes.
 - Seed creates one organization, one website, three products, inventory, COD payment provider, and entitlements.
-- Business Admin can create a catalogue offering with facility-aware labels, tenant/facility validation, draft/active status, public visibility, default variant creation, canonical route wiring, and audit.
+- Business Admin can create, view, edit, archive, and restore a basic catalogue offering with facility-aware labels, tenant/facility validation, draft/active/archive status handling, public visibility controls, default variant synchronization, canonical route wiring, and audit.
 
 Pending:
 
-- Production-grade admin CRUD forms for categories, collections, images/media, options, variants, add-ons, price lists, and product edit/delete flows.
+- Production-grade admin CRUD forms for categories, collections, images/media, options, variants, add-ons, price lists, and richer product lifecycle/bulk-management flows.
 - Public cart and checkout pages.
 - Shipping/tax rule UI and final checkout totals.
 - Order management workflow UI.
@@ -200,7 +205,7 @@ Passing:
 - Migrations applied.
 - `makemigrations --check --dry-run`.
 - Ruff.
-- Pytest: 54 tests.
+- Pytest: 60 tests.
 - Health, database health, generated website, and host-isolation smoke checks.
 
 Known dev-only warning:

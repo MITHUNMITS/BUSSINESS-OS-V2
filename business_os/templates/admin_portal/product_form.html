@@ -6,7 +6,7 @@
 
 {% block content %}
 <div class="mb-4">
-  <a class="link" href="{{ admin_urls.products }}">&larr; {% blocktrans with offerings=facility_profile.terms.offerings|lower %}Back to {{ offerings }}{% endblocktrans %}</a>
+  <a class="link" href="{{ return_url|default:admin_urls.products }}">&larr; {% blocktrans with offerings=facility_profile.terms.offerings|lower %}Back to {{ offerings }}{% endblocktrans %}</a>
 </div>
 
 <form method="post" class="space-y-6" novalidate>
@@ -95,7 +95,7 @@
   </section>
 
   <div class="flex items-center justify-end gap-3">
-    <a class="btn btn-ghost" href="{{ admin_urls.products }}">{% trans "Cancel" %}</a>
+    <a class="btn btn-ghost" href="{{ cancel_url|default:admin_urls.products }}">{% trans "Cancel" %}</a>
     <button class="btn btn-primary" type="submit">{{ form_schema.submit_label }}</button>
   </div>
 </form>

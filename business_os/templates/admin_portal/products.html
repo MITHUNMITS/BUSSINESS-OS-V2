@@ -22,14 +22,20 @@
     </div>
     <div class="overflow-x-auto">
       <table class="table">
-        <thead><tr><th>{{ labels.offering_column }}</th><th>{% trans "Code" %}</th><th>{% trans "Price" %}</th><th>{% trans "Status" %}</th></tr></thead>
+        <thead><tr><th>{{ labels.offering_column }}</th><th>{% trans "Code" %}</th><th>{% trans "Price" %}</th><th>{% trans "Status" %}</th><th>{% trans "Actions" %}</th></tr></thead>
         <tbody>
         {% for product in products %}
           <tr>
-            <td>{{ product.name }}</td>
+            <td><a class="link font-medium" href="{{ admin_urls.products }}{{ product.id }}/">{{ product.name }}</a></td>
             <td>{{ product.code }}</td>
             <td>{{ product.currency }} {{ product.display_price }}</td>
             <td>{% include "components/status_badge.html" with status=product.status %}</td>
+            <td>
+              <div class="flex flex-wrap gap-2">
+                <a class="btn btn-xs btn-outline" href="{{ admin_urls.products }}{{ product.id }}/">{% trans "View" %}</a>
+                <a class="btn btn-xs btn-ghost" href="{{ admin_urls.products }}{{ product.id }}/edit/">{% trans "Edit" %}</a>
+              </div>
+            </td>
           </tr>
         {% endfor %}
         </tbody>

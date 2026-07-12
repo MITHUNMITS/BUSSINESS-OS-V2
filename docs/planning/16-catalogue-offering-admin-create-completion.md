@@ -71,6 +71,7 @@ Relevant tests:
 
 ## Separate Future Features
 
+- Basic offering detail/edit/archive/restore is recorded separately in `17-catalogue-offering-admin-lifecycle-completion.md`.
 - Category, collection, image/media, option, variant, add-on, and price-list admin CRUD.
 - Facility-aware form schema resolution for the remaining catalogue and non-catalogue forms.
 - Entitlement-gated advanced catalogue fields and submodules.
