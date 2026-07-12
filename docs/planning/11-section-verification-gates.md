@@ -91,9 +91,10 @@ A feature is production-ready for its declared scope only when all applicable it
 
 ## Current Known High-Priority Gates
 
-1. Finish canonical host enforcement for `app`, `platform`, `api`, docs/status, custom domains, and previews.
-2. Add platform-role versus tenant-role separation and audited support mode.
+1. Finish domain lifecycle work for DNS verification, TLS automation, custom-domain diagnostics, and preview authorization.
+2. Finish customer actor login and customer portal policy on top of the new session isolation foundation.
 3. Add facility profile schema and terminology pack resolver before broadening beyond ecommerce.
-4. Expand marketplace/subscription purchase flow with pricing snapshots and billing edge cases.
-5. Add domain events/outbox before notifications, analytics, integrations, or workflow automation grow.
-6. Add import/export, observability, privacy/legal, and database governance runbooks before production launch.
+4. Add MFA/approval controls before controlled-write support access.
+5. Expand marketplace/subscription purchase flow with pricing snapshots and billing edge cases.
+6. Add domain events/outbox before notifications, analytics, integrations, or workflow automation grow.
+7. Add import/export, observability, privacy/legal, and database governance runbooks before production launch.

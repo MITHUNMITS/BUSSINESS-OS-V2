@@ -24,10 +24,30 @@ def env_list(name: str, default: str = "") -> list[str]:
 
 SECRET_KEY = env("DJANGO_SECRET_KEY", "dev-insecure-change-me")
 DEBUG = False
-ALLOWED_HOSTS = env_list("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1,.localhost")
-CSRF_TRUSTED_ORIGINS = env_list("DJANGO_CSRF_TRUSTED_ORIGINS")
-
 PLATFORM_ROOT_DOMAIN = env("PLATFORM_ROOT_DOMAIN", "businessos.local")
+ALLOWED_HOSTS = env_list("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1,.localhost")
+
+
+def default_csrf_trusted_origins() -> list[str]:
+    root_domain = PLATFORM_ROOT_DOMAIN.strip().lower().rstrip(".")
+    canonical_hosts = [
+        f"app.{root_domain}",
+        f"platform.{root_domain}",
+        f"api.{root_domain}",
+        "app.localhost",
+        "platform.localhost",
+        "api.localhost",
+    ]
+    origins: list[str] = []
+    for host in canonical_hosts:
+        origins.append(f"http://{host}")
+        origins.append(f"https://{host}")
+    return origins
+
+
+CSRF_TRUSTED_ORIGINS = env_list(
+    "DJANGO_CSRF_TRUSTED_ORIGINS",
+) or default_csrf_trusted_origins()
 SUPPORTED_COUNTRIES = ("AE", "IN")
 SUPPORTED_CURRENCIES = ("AED", "INR", "USD")
 DEFAULT_COUNTRY = env("DEFAULT_COUNTRY", "AE")
@@ -115,6 +135,8 @@ def database_config() -> dict[str, object]:
 DATABASES = {"default": database_config()}
 
 AUTH_USER_MODEL = "accounts.User"
+AUTH_LOGIN_FAILURE_LIMIT = int(env("AUTH_LOGIN_FAILURE_LIMIT", "5"))
+AUTH_LOGIN_FAILURE_WINDOW_SECONDS = int(env("AUTH_LOGIN_FAILURE_WINDOW_SECONDS", "900"))
 
 AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
@@ -149,6 +171,8 @@ SESSION_COOKIE_HTTPONLY = True
 CSRF_COOKIE_HTTPONLY = True
 SESSION_COOKIE_SAMESITE = "Lax"
 CSRF_COOKIE_SAMESITE = "Lax"
+SESSION_COOKIE_DOMAIN = env("DJANGO_SESSION_COOKIE_DOMAIN") or None
+CSRF_COOKIE_DOMAIN = env("DJANGO_CSRF_COOKIE_DOMAIN") or None
 SECURE_REFERRER_POLICY = "same-origin"
 X_FRAME_OPTIONS = "DENY"
 

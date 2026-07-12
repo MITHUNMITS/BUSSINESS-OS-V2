@@ -128,3 +128,108 @@ Seeded data:
 - Organizations: 1.
 - Products: 3.
 - Websites: 1.
+
+## 2026-07-12 Actor, Portal, And Support Access Foundation
+
+Affected master-spec sections:
+
+- Section 16: Security and multi-tenancy.
+- Section 25: Canonical domain and routing architecture.
+- Section 26: Actor, portal, and permission model.
+- Section 35: Privacy, security, legal, and audit.
+- Section 36: Support mode and superadmin organization workspace.
+- Section 40: Codex delivery protocol.
+
+Implemented:
+
+- Added `PlatformRole` and `PlatformRoleAssignment` as platform-global roles separate from organization tenant roles.
+- Added explicit platform permission service checks for platform portal, organization view, and support-session permissions.
+- Added `SupportSession` with actor, target organization, reason, ticket reference, read-only scope, expiry, end metadata, and audit linkage.
+- Added support-session start/end/access service methods.
+- Removed the shortcut that allowed platform staff to act as implicit members of every business organization.
+- Added canonical platform organization workspace and support start/end routes under `/organizations/<organization_slug>/...`.
+- Added visible support-mode banner and exit control on the platform organization workspace.
+- Extended audit events with support session, support mode, IP address, user agent, and request context.
+- Added implementation note `13-actor-portal-support-foundation.md`.
+
+Commands run:
+
+- `git pull --ff-only`: passed, already up to date.
+- `docker compose ps`: passed; PostgreSQL healthy, Redis running.
+- `docker compose run --rm web sh docker/entrypoint.sh python manage.py makemigrations core`: passed and generated `core.0002_platformrole_supportsession_and_more`.
+- `docker compose run --rm web sh docker/entrypoint.sh python manage.py makemigrations --check --dry-run`: passed with no changes detected.
+- `docker compose run --rm web sh docker/entrypoint.sh python manage.py migrate`: passed; applied `core.0002_platformrole_supportsession_and_more`.
+- `docker compose run --rm web sh docker/entrypoint.sh python manage.py migrate --check`: passed with no unapplied migrations.
+- `docker compose run --rm web sh docker/entrypoint.sh python manage.py check`: passed.
+- `docker compose run --rm web sh docker/entrypoint.sh pytest tests/integration/test_domain_routing.py tests/integration/test_actor_support_access.py -q`: passed, 24 tests.
+- `docker compose run --rm web sh docker/entrypoint.sh pytest`: passed, 29 tests.
+- `docker compose run --rm web sh docker/entrypoint.sh ruff check .`: passed.
+
+Test coverage added:
+
+- Business member can access only their own organization admin.
+- Platform staff with an explicit platform role can access the platform portal.
+- Non-platform users cannot access the platform portal.
+- Platform staff without a platform role cannot access the platform portal.
+- Read-only support session grants scoped platform organization workspace access.
+- Support session does not grant business-admin tenant access or create tenant membership.
+- Expired support session fails and is cleared from the browser session.
+- Support start/access/end audit events are written.
+
+Known dev-only warning:
+
+- Pytest still reports the existing local staticfiles warning: `No directory at: /app/staticfiles/`.
+
+## 2026-07-12 Business Admin And Platform Login Completion
+
+Affected master-spec sections:
+
+- Section 16: Security and multi-tenancy.
+- Section 25: Canonical domain and routing architecture.
+- Section 26: Actor, portal, and permission model.
+- Section 35: Privacy, security, legal, and audit.
+- Section 40: Codex delivery protocol.
+
+Implemented:
+
+- Added portal session service with explicit `business_admin`, `platform_admin`, and reserved `customer` scopes.
+- Added Business Admin and Platform login/logout views.
+- Added password reset routes and templates for privileged app/platform hosts.
+- Added visible POST-only logout controls in Business Admin and Platform shells.
+- Added login failure rate limiting by portal, username, and IP address.
+- Added auth audit events for login success, login failure, login denied, login rate limiting, logout, and rejected cross-portal sessions.
+- Added portal session boundary enforcement in request middleware.
+- Added canonical `/login/` and `/logout/` routes plus legacy `/app/login/` and `/platform/login/` compatibility routes.
+- Added host-guard allow-listing for canonical login/logout/password-reset paths on business and platform hosts.
+- Added host-only session/CSRF cookie defaults.
+- Added explicit canonical CSRF trusted origins in base settings and Docker Compose.
+- Added implementation note `14-business-platform-login-session-completion.md`.
+
+Commands run:
+
+- `docker compose run --rm web sh docker/entrypoint.sh python manage.py check`: passed.
+- `docker compose run --rm web sh docker/entrypoint.sh pytest tests/integration/test_portal_session_isolation.py tests/integration/test_domain_routing.py tests/integration/test_actor_support_access.py -q`: passed, 30 tests.
+- `docker compose run --rm web sh docker/entrypoint.sh pytest tests/integration/test_portal_session_isolation.py -q`: passed, 10 tests.
+- `docker compose run --rm web sh docker/entrypoint.sh ruff check .`: passed.
+- `docker compose run --rm web sh docker/entrypoint.sh python manage.py makemigrations --check --dry-run`: passed with no changes detected.
+- `docker compose run --rm web sh docker/entrypoint.sh python manage.py migrate --check`: passed with no unapplied migrations.
+- `docker compose run --rm web sh docker/entrypoint.sh pytest`: passed, 39 tests.
+
+Test coverage added:
+
+- Business login marks a Business Admin session and redirects to the organization dashboard.
+- Platform login marks a Platform session.
+- External `next` redirects are rejected during login.
+- Business sessions cannot be reused on the Platform host.
+- Platform sessions cannot be reused on the Business Admin host.
+- Leaked privileged sessions are cleared on public website hosts.
+- Session and CSRF cookies remain host-scoped by default.
+- CSRF trusted origins include explicit canonical app/platform/API hosts.
+- Failed login is audited and rate-limited.
+- Logout is POST-only, audited, and clears the portal session.
+- Password reset sends email without revealing account existence.
+- Password reset is blocked on public website hosts.
+
+Known dev-only warning:
+
+- Pytest still reports the existing local staticfiles warning: `No directory at: /app/staticfiles/`.

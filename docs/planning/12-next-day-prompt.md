@@ -31,8 +31,23 @@ Do not treat this as an ecommerce-only project. Business OS is a modular all-in-
   - `api.<PLATFORM_ROOT_DOMAIN>` allows `/api/v1/`.
   - generated/custom public website hosts only expose public website/customer routes.
   - wrong-host admin/API/platform/public routes return 404.
-- Platform portal views require `is_platform_staff`.
+- Platform portal views require explicit platform role assignments.
 - Public generated sites use canonical page paths like `/p/contact/`.
+- Explicit platform roles and platform role assignments exist separately from organization tenant roles.
+- Read-only support-session foundation exists with reason, ticket reference, scope, expiry, actor, target organization, start/end services, visible support banner/exit, and audit events.
+- Business Admin and Platform Admin login/session scope is complete:
+  - Business Admin login requires active organization membership.
+  - Platform login requires explicit platform portal permission.
+  - sessions are stamped with portal scope.
+  - cross-portal session reuse is rejected.
+  - leaked privileged sessions on public hosts are cleared.
+  - safe redirects, POST-only logout, password reset, login rate limiting, and auth audit events are implemented.
+- Latest verification passed:
+  - `python manage.py check`
+  - `python manage.py makemigrations --check --dry-run`
+  - `python manage.py migrate --check`
+  - `pytest` with 39 tests
+  - `ruff check .`
 
 ## Start Commands
 
@@ -46,30 +61,30 @@ docker compose run --rm web sh docker/entrypoint.sh ruff check .
 
 ## Next Recommended Implementation
 
-Implement the **Actor, Portal, And Support Access Foundation** before building more ecommerce screens.
+Implement the **Facility Profile And Terminology Resolver Completion** before building broad forms, module UI, appointments, CRM, or advanced ecommerce UI.
+
+The goal is to make Business OS adapt labels, form hints, default dashboards, and navigation language by business/facility type so future forms do not hard-code ecommerce wording.
 
 Affected master-spec sections:
 
+- Section 7: Business Admin UI/UX
+- Section 11: Forms and controls
 - Section 16: Security and multi-tenancy
-- Section 25: Canonical domain and routing architecture
-- Section 26: Actor, portal, and permission model
-- Section 35: Privacy, security, legal, and audit
-- Section 36: Support mode and superadmin organization workspace
+- Section 27: Facility model and facility-aware adaptation
+- Section 29: Module catalogue
 - Section 40: Codex delivery protocol
 
 Required work:
 
-1. Add explicit platform role model or platform permission service separate from organization tenant roles.
-2. Add support-session model with reason, scope, expiry, actor, target organization, and audit fields.
-3. Add service methods to start/end support sessions.
-4. Ensure support access does not silently impersonate business users.
-5. Add tests for:
-   - business member can access only own org admin.
-   - platform staff can access platform portal.
-   - non-platform user cannot access platform portal.
-   - support session grants scoped organization access.
-   - expired support session fails.
-   - audit event is written for support access.
-6. Update `08-verification-log.md`, `09-master-spec-compliance.md`, and `10-master-spec-gap-register.md`.
+1. Read master-spec Section 27 fully before coding.
+2. Define the declared completion scope clearly so this slice can be marked complete, not just "foundation".
+3. Add a facility profile/terminology resolver service that supports existing facility types without ecommerce-only assumptions.
+4. Wire the resolver into Business Admin navigation/page labels where safe and scoped.
+5. Add tests proving:
+   - online store terminology remains correct for current ecommerce slice.
+   - retail/warehouse/office terminology resolves differently where expected.
+   - unknown or unsupported facility type falls back safely.
+   - resolver is organization/facility scoped and does not leak tenant data.
+6. Update `08-verification-log.md`, `09-master-spec-compliance.md`, `10-master-spec-gap-register.md`, and planning index/docs as needed.
 
-Do not build appointments, CRM, marketing, or advanced ecommerce UI yet. Keep the next slice small and production-grade.
+Do not build appointments, CRM, marketing, broad module UI, or advanced ecommerce UI yet. Finish the declared facility terminology slice completely and production-grade.

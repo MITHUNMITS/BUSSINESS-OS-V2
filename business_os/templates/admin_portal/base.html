@@ -29,6 +29,10 @@
         <div class="flex items-center gap-2">
           <button class="btn btn-sm btn-outline" type="button">{% trans "Help" %}</button>
           <button class="btn btn-sm btn-primary" type="button">{% trans "New" %}</button>
+          <form method="post" action="{% if request.host_surface == 'business_admin' %}/logout/{% else %}{% url 'business-portal-logout' %}{% endif %}">
+            {% csrf_token %}
+            <button class="btn btn-sm btn-ghost" type="submit">{% trans "Logout" %}</button>
+          </form>
         </div>
       </div>
     </header>
@@ -38,4 +42,3 @@
   </div>
 </div>
 {% endblock %}
-

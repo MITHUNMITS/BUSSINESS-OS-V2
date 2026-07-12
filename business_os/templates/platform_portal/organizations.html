@@ -11,7 +11,11 @@
       <tbody>
       {% for organization in organizations %}
         <tr>
-          <td>{{ organization.name }}</td>
+          <td>
+            <a class="link link-hover font-medium" href="{% if request.host_surface == 'platform_admin' %}/organizations/{{ organization.slug }}/{% else %}{% url 'platform-organization-workspace' organization.slug %}{% endif %}">
+              {{ organization.name }}
+            </a>
+          </td>
           <td>{{ organization.country }}</td>
           <td>{{ organization.default_currency }}</td>
           <td>{% include "components/status_badge.html" with status=organization.status %}</td>
@@ -22,4 +26,3 @@
   </div>
 </div>
 {% endblock %}
-

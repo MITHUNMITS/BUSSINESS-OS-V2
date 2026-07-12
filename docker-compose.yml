@@ -9,7 +9,7 @@ services:
       DATABASE_URL: postgres://business_os:business_os@db:5432/business_os
       REDIS_URL: redis://redis:6379/0
       DJANGO_ALLOWED_HOSTS: localhost,127.0.0.1,0.0.0.0,web,.localhost
-      DJANGO_CSRF_TRUSTED_ORIGINS: http://localhost:8000,http://127.0.0.1:8000
+      DJANGO_CSRF_TRUSTED_ORIGINS: http://localhost:8000,http://127.0.0.1:8000,http://app.businessos.local,https://app.businessos.local,http://platform.businessos.local,https://platform.businessos.local,http://api.businessos.local,https://api.businessos.local,http://app.localhost,https://app.localhost,http://platform.localhost,https://platform.localhost,http://api.localhost,https://api.localhost
     volumes:
       - .:/app
     ports:

@@ -2,6 +2,12 @@ import pytest
 from django.contrib.auth import get_user_model
 from django.test import Client, override_settings
 
+from business_os.apps.accounts.services import PORTAL_SESSION_KEY, PortalSessionScope
+from business_os.apps.core.models import (
+    PlatformPermission,
+    PlatformRole,
+    PlatformRoleAssignment,
+)
 from business_os.apps.organizations.models import Membership, Organization
 from business_os.apps.websites.domain_services import (
     generated_domain_for_slug,
@@ -9,6 +15,25 @@ from business_os.apps.websites.domain_services import (
 )
 from business_os.apps.websites.models import WebsiteDomain
 from business_os.apps.websites.services import provision_default_website
+
+
+def assign_platform_administrator(user):
+    role, _created = PlatformRole.objects.get_or_create(
+        code="test-platform-administrator",
+        defaults={
+            "name": "Test Platform Administrator",
+            "permissions": [PlatformPermission.WILDCARD],
+            "is_system": True,
+        },
+    )
+    PlatformRoleAssignment.objects.get_or_create(user=user, role=role)
+
+
+def force_portal_login(client: Client, user, portal_scope: str) -> None:
+    client.force_login(user)
+    session = client.session
+    session[PORTAL_SESSION_KEY] = portal_scope
+    session.save()
 
 
 @pytest.mark.django_db
@@ -109,7 +134,7 @@ def test_business_admin_host_allows_canonical_admin_route():
         is_owner=True,
     )
     client = Client(HTTP_HOST="app.businessos.local")
-    client.force_login(user)
+    force_portal_login(client, user, PortalSessionScope.BUSINESS_ADMIN)
 
     response = client.get("/o/nova/dashboard/")
 
@@ -168,8 +193,9 @@ def test_platform_host_allows_platform_staff_on_canonical_routes():
         password="not-used",
         is_platform_staff=True,
     )
+    assign_platform_administrator(user)
     client = Client(HTTP_HOST="platform.businessos.local")
-    client.force_login(user)
+    force_portal_login(client, user, PortalSessionScope.PLATFORM_ADMIN)
 
     response = client.get("/organizations/")
 
@@ -190,8 +216,9 @@ def test_platform_localhost_resolves_as_platform_admin():
         password="not-used",
         is_platform_staff=True,
     )
+    assign_platform_administrator(user)
     client = Client(HTTP_HOST="platform.localhost")
-    client.force_login(user)
+    force_portal_login(client, user, PortalSessionScope.PLATFORM_ADMIN)
 
     response = client.get("/organizations/")
 
@@ -218,7 +245,7 @@ def test_app_localhost_resolves_as_business_admin():
         is_owner=True,
     )
     client = Client(HTTP_HOST="app.localhost")
-    client.force_login(user)
+    force_portal_login(client, user, PortalSessionScope.BUSINESS_ADMIN)
 
     response = client.get("/o/nova/dashboard/")
 

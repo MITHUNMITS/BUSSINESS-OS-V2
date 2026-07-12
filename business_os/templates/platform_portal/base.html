@@ -12,6 +12,10 @@
       <a class="btn btn-sm btn-outline" href="{% if request.host_surface == 'platform_admin' %}/{% else %}{% url 'platform-overview' %}{% endif %}">{% trans "Overview" %}</a>
       <a class="btn btn-sm btn-outline" href="{% if request.host_surface == 'platform_admin' %}/modules/{% else %}{% url 'platform-modules' %}{% endif %}">{% trans "Modules" %}</a>
       <a class="btn btn-sm btn-outline" href="{% if request.host_surface == 'platform_admin' %}/organizations/{% else %}{% url 'platform-organizations' %}{% endif %}">{% trans "Organizations" %}</a>
+      <form method="post" action="{% if request.host_surface == 'platform_admin' %}/logout/{% else %}{% url 'platform-portal-logout' %}{% endif %}">
+        {% csrf_token %}
+        <button class="btn btn-sm btn-ghost" type="submit">{% trans "Logout" %}</button>
+      </form>
     </nav>
   </div>
   {% block content %}{% endblock %}

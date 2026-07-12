@@ -18,8 +18,15 @@ COMMON_EXACT_PATHS = {"/", "/favicon.ico", "/robots.txt"}
 COMMON_PREFIXES = ("/health/", "/static/", "/media/")
 SURFACE_ALLOWED_PREFIXES = {
     "marketing": (),
-    "business_admin": ("/o/",),
-    "platform_admin": ("/modules/", "/organizations/", "/django-admin/"),
+    "business_admin": ("/o/", "/login/", "/logout/", "/password-reset/"),
+    "platform_admin": (
+        "/modules/",
+        "/organizations/",
+        "/django-admin/",
+        "/login/",
+        "/logout/",
+        "/password-reset/",
+    ),
     "api": ("/api/v1/",),
     "docs": (),
     "status": (),

@@ -34,18 +34,29 @@ Current focus:
 - Canonical host guard foundation added for app, platform, API, generated-site, custom-site, preview, docs, status, marketing, and local surfaces.
 - Canonical app-host admin routes added under `/o/<organization_slug>/...`.
 - Canonical platform-host routes added for `/modules/` and `/organizations/`.
-- Platform portal views now require platform staff.
+- Platform portal views now require explicit platform role assignments.
 - Public generated-site page routes now use `/p/<page_slug>/`.
+- Platform roles and platform role assignments added separately from organization membership roles.
+- Read-only support-session foundation added with reason, ticket reference, scope, expiry, actor, target organization, start/end services, and audit links.
+- Platform organization workspace added for scoped support access without impersonating business users or granting tenant membership.
+- Support access audit events now capture support mode, support session, reason, IP address, user agent, request ID, actor, and organization.
+- Business Admin and Platform login routes added with explicit portal-scoped sessions.
+- Portal session boundary middleware added so business, platform, and future customer sessions cannot be reused across the wrong host surfaces.
+- Host-only session/CSRF cookie defaults and explicit canonical CSRF trusted origins documented in settings and Docker Compose.
+- Business Admin and Platform login completed for the declared scope with password reset, POST-only logout, login failure rate limiting, redirect safety, and auth audit events.
 - Master-spec compliance snapshot added in `09-master-spec-compliance.md`.
 - Master-spec gap register added in `10-master-spec-gap-register.md`.
 - Section-by-section build verification gates added in `11-section-verification-gates.md`.
 - Next-day continuation prompt added in `12-next-day-prompt.md`.
+- Actor/support foundation implementation note added in `13-actor-portal-support-foundation.md`.
+- Business/Admin and Platform login completion note added in `14-business-platform-login-session-completion.md`.
 
 ## In Progress
 
 - Product/admin/marketplace workflows need the next production implementation pass.
 - Full DNS ownership verification, TLS provisioning, CDN purge, preview-token authorization, and production cookie/session policy need the next domain lifecycle pass.
-- Actor/session separation, facility adaptation, billing edge cases, import/export, observability/DR, privacy/legal/audit, support mode, AI governance, and database governance are now tracked as explicit planning gaps.
+- Customer actor login, facility adaptation, billing edge cases, import/export, observability/DR, privacy/legal/audit, AI governance, and database governance are tracked as explicit planning gaps.
+- Support mode still needs MFA/approval controls, controlled-write workflow policy, customer-facing visibility rules, and stronger immutable audit/retention work.
 - Business workflows need iterative completion module by module.
 - UI screens need Playwright and accessibility verification.
 
