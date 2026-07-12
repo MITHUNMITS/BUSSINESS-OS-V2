@@ -1,15 +1,23 @@
 from datetime import timedelta
 
+from django.contrib import messages
 from django.core.exceptions import PermissionDenied
 from django.http import HttpResponseBadRequest, HttpResponseNotAllowed
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 
-from business_os.apps.catalogue.selectors import visible_offerings_for_organization
+from business_os.apps.catalogue.forms import OfferingAdminForm
+from business_os.apps.catalogue.selectors import (
+    admin_offerings_for_organization,
+    visible_offerings_for_organization,
+)
+from business_os.apps.catalogue.services import create_offering
 from business_os.apps.commerce.models import Order
 from business_os.apps.core.models import PlatformPermission, SupportAccessScope
 from business_os.apps.core.module_registry import get_navigation, load_module_definitions
 from business_os.apps.core.services import (
+    AuditTarget,
+    audit_event,
     end_support_session,
     has_platform_permission,
     record_support_access,
@@ -18,12 +26,17 @@ from business_os.apps.core.services import (
     start_support_session,
 )
 from business_os.apps.marketplace.selectors import visible_marketplace_modules
+from business_os.apps.organizations.facility_profiles import (
+    page_title_for_url_name,
+    resolve_facility_profile,
+)
 from business_os.apps.organizations.models import Membership, Organization
 from business_os.apps.websites.services import visible_pages_for_website
 
 
 def _organization_context(request, organization_slug: str):
     organization = get_object_or_404(Organization, slug=organization_slug)
+    request.organization = organization
     user = request.user
     is_member = user.is_authenticated and (
         Membership.objects.filter(
@@ -34,8 +47,52 @@ def _organization_context(request, organization_slug: str):
     )
     if not is_member:
         raise PermissionDenied("Organization membership is required.")
-    navigation = get_navigation(organization=organization, user=request.user)
+    facility_profile = resolve_facility_profile(organization=organization)
+    request.facility = facility_profile.facility
+    request.facility_profile = facility_profile
+    navigation = get_navigation(
+        organization=organization,
+        user=request.user,
+        facility=facility_profile.facility,
+    )
     return organization, navigation
+
+
+def _admin_urls(organization):
+    base = f"/o/{organization.slug}"
+    return {
+        "dashboard": f"{base}/dashboard/",
+        "marketplace": f"{base}/marketplace/",
+        "billing": f"{base}/billing/",
+        "website": f"{base}/website/",
+        "products": f"{base}/products/",
+        "products_create": f"{base}/products/new/",
+        "categories": f"{base}/categories/",
+        "inventory": f"{base}/inventory/",
+        "orders": f"{base}/orders/",
+        "payments": f"{base}/payments/",
+        "analytics": f"{base}/analytics/",
+        "settings": f"{base}/settings/",
+    }
+
+
+def _admin_payload(request, organization, navigation, **extra):
+    payload = {
+        "organization": organization,
+        "navigation": navigation,
+        "facility_profile": request.facility_profile,
+        "admin_urls": _admin_urls(organization),
+    }
+    payload.update(extra)
+    return payload
+
+
+def _admin_page_title(request, url_name: str, default: str) -> str:
+    return page_title_for_url_name(
+        profile=request.facility_profile,
+        url_name=url_name,
+        default=default,
+    )
 
 
 def _require_platform_portal_access(request) -> None:
@@ -62,12 +119,13 @@ def admin_dashboard(request, organization_slug: str):
     return render(
         request,
         "admin_portal/dashboard.html",
-        {
-            "organization": organization,
-            "navigation": navigation,
-            "products": products,
-            "recent_orders": recent_orders,
-        },
+        _admin_payload(
+            request,
+            organization,
+            navigation,
+            products=products,
+            recent_orders=recent_orders,
+        ),
     )
 
 
@@ -77,7 +135,7 @@ def admin_marketplace(request, organization_slug: str):
     return render(
         request,
         "admin_portal/marketplace.html",
-        {"organization": organization, "navigation": navigation, "modules": modules},
+        _admin_payload(request, organization, navigation, modules=modules),
     )
 
 
@@ -86,7 +144,7 @@ def admin_billing(request, organization_slug: str):
     return render(
         request,
         "admin_portal/simple_page.html",
-        {"title": "Billing", "organization": organization, "navigation": navigation},
+        _admin_payload(request, organization, navigation, title="Billing"),
     )
 
 
@@ -100,17 +158,82 @@ def admin_website(request, organization_slug: str):
     return render(
         request,
         "admin_portal/website.html",
-        {"organization": organization, "navigation": navigation, "pages": pages},
+        _admin_payload(request, organization, navigation, pages=pages),
     )
 
 
 def admin_products(request, organization_slug: str):
     organization, navigation = _organization_context(request, organization_slug)
-    products = visible_offerings_for_organization(organization)
+    products = admin_offerings_for_organization(organization)
     return render(
         request,
         "admin_portal/products.html",
-        {"organization": organization, "navigation": navigation, "products": products},
+        _admin_payload(
+            request,
+            organization,
+            navigation,
+            products=products,
+            title=_admin_page_title(request, "admin-products", "Products"),
+        ),
+    )
+
+
+def admin_product_create(request, organization_slug: str):
+    if request.method not in {"GET", "POST"}:
+        return HttpResponseNotAllowed(["GET", "POST"])
+
+    organization, navigation = _organization_context(request, organization_slug)
+    form = OfferingAdminForm(
+        request.POST if request.method == "POST" else None,
+        organization=organization,
+        facility_profile=request.facility_profile,
+    )
+    if request.method == "POST" and form.is_valid():
+        try:
+            offering = create_offering(
+                organization=organization,
+                facility=request.facility,
+                created_by=request.user,
+                **form.to_service_kwargs(),
+            )
+        except ValueError as exc:
+            form.add_error(None, str(exc))
+        else:
+            audit_event(
+                action="catalogue.offering.created",
+                request=request,
+                organization=organization,
+                facility=request.facility,
+                actor=request.user,
+                target=AuditTarget("catalogue_offering", str(offering.id)),
+                after={
+                    "name": offering.name,
+                    "code": offering.code,
+                    "status": offering.status,
+                    "offering_type": offering.offering_type,
+                    "visible_on_website": offering.visible_on_website,
+                    "facility_id": str(offering.facility_id) if offering.facility_id else "",
+                    "facility_type": request.facility_profile.facility_type,
+                },
+                source="business_admin",
+            )
+            messages.success(
+                request,
+                f"{request.facility_profile.terms['offering']} created.",
+            )
+            return redirect(_admin_urls(organization)["products"])
+
+    return render(
+        request,
+        "admin_portal/product_form.html",
+        _admin_payload(
+            request,
+            organization,
+            navigation,
+            form=form,
+            form_schema=form.schema,
+            title=form.schema.page_title,
+        ),
     )
 
 
@@ -119,7 +242,12 @@ def admin_categories(request, organization_slug: str):
     return render(
         request,
         "admin_portal/simple_page.html",
-        {"title": "Categories", "organization": organization, "navigation": navigation},
+        _admin_payload(
+            request,
+            organization,
+            navigation,
+            title=_admin_page_title(request, "admin-categories", "Categories"),
+        ),
     )
 
 
@@ -128,7 +256,12 @@ def admin_inventory(request, organization_slug: str):
     return render(
         request,
         "admin_portal/simple_page.html",
-        {"title": "Inventory", "organization": organization, "navigation": navigation},
+        _admin_payload(
+            request,
+            organization,
+            navigation,
+            title=_admin_page_title(request, "admin-inventory", "Inventory"),
+        ),
     )
 
 
@@ -138,7 +271,13 @@ def admin_orders(request, organization_slug: str):
     return render(
         request,
         "admin_portal/orders.html",
-        {"organization": organization, "navigation": navigation, "orders": orders},
+        _admin_payload(
+            request,
+            organization,
+            navigation,
+            orders=orders,
+            title=_admin_page_title(request, "admin-orders", "Orders"),
+        ),
     )
 
 
@@ -147,7 +286,7 @@ def admin_payments(request, organization_slug: str):
     return render(
         request,
         "admin_portal/simple_page.html",
-        {"title": "Payments", "organization": organization, "navigation": navigation},
+        _admin_payload(request, organization, navigation, title="Payments"),
     )
 
 
@@ -156,7 +295,7 @@ def admin_analytics(request, organization_slug: str):
     return render(
         request,
         "admin_portal/simple_page.html",
-        {"title": "Analytics", "organization": organization, "navigation": navigation},
+        _admin_payload(request, organization, navigation, title="Analytics"),
     )
 
 
@@ -165,7 +304,7 @@ def admin_settings(request, organization_slug: str):
     return render(
         request,
         "admin_portal/simple_page.html",
-        {"title": "Settings", "organization": organization, "navigation": navigation},
+        _admin_payload(request, organization, navigation, title="Settings"),
     )
 
 

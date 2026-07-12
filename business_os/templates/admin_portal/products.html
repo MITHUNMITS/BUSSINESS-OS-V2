@@ -1,20 +1,28 @@
 {% extends "admin_portal/base.html" %}
 {% load i18n %}
 
-{% block page_title %}{% trans "Products" %}{% endblock %}
+{% block page_title %}{{ title }}{% endblock %}
 
 {% block content %}
+{% with labels=facility_profile.dashboard_labels %}
+<div class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+  <div>
+    <p class="text-sm text-base-content/60">{% trans "Catalogue admin" %}</p>
+    <h3 class="text-lg font-semibold">{{ title }}</h3>
+  </div>
+  <a class="btn btn-primary" href="{{ admin_urls.products_create }}">{{ labels.add_offering_action }}</a>
+</div>
 {% if products %}
   <div class="rounded-lg border border-base-300 bg-base-100">
     <div class="border-b border-base-300 p-4">
       <label class="input input-bordered flex items-center gap-2">
         <span class="text-base-content/50">{% trans "Search" %}</span>
-        <input class="grow" type="search" aria-label="{% trans 'Search products' %}">
+        <input class="grow" type="search" aria-label="Search {{ title|lower }}">
       </label>
     </div>
     <div class="overflow-x-auto">
       <table class="table">
-        <thead><tr><th>{% trans "Product" %}</th><th>{% trans "Code" %}</th><th>{% trans "Price" %}</th><th>{% trans "Status" %}</th></tr></thead>
+        <thead><tr><th>{{ labels.offering_column }}</th><th>{% trans "Code" %}</th><th>{% trans "Price" %}</th><th>{% trans "Status" %}</th></tr></thead>
         <tbody>
         {% for product in products %}
           <tr>
@@ -29,7 +37,7 @@
     </div>
   </div>
 {% else %}
-  {% include "components/empty_state.html" with title="No products yet" message="Create products with variants and stock before publishing ecommerce." action_label="Add product" action_url="#" %}
+  {% include "components/empty_state.html" with title=labels.no_offerings_title message=labels.no_offerings_message action_label=labels.add_offering_action action_url=admin_urls.products_create %}
 {% endif %}
+{% endwith %}
 {% endblock %}
-

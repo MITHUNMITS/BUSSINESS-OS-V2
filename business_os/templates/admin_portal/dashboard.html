@@ -4,13 +4,14 @@
 {% block page_title %}{% trans "Dashboard" %}{% endblock %}
 
 {% block content %}
+{% with labels=facility_profile.dashboard_labels %}
 <div class="grid gap-4 md:grid-cols-3">
   <section class="rounded-lg border border-base-300 bg-base-100 p-5">
-    <p class="text-sm text-base-content/60">{% trans "Active products" %}</p>
+    <p class="text-sm text-base-content/60">{{ labels.active_offerings }}</p>
     <p class="mt-2 text-3xl font-semibold">{{ products|length }}</p>
   </section>
   <section class="rounded-lg border border-base-300 bg-base-100 p-5">
-    <p class="text-sm text-base-content/60">{% trans "Recent orders" %}</p>
+    <p class="text-sm text-base-content/60">{{ labels.recent_orders }}</p>
     <p class="mt-2 text-3xl font-semibold">{{ recent_orders|length }}</p>
   </section>
   <section class="rounded-lg border border-base-300 bg-base-100 p-5">
@@ -22,13 +23,13 @@
 <div class="mt-6 grid gap-6 lg:grid-cols-2">
   <section class="rounded-lg border border-base-300 bg-base-100 p-5">
     <div class="mb-4 flex items-center justify-between">
-      <h3 class="font-semibold">{% trans "Products" %}</h3>
-      <a class="link" href="#admin-products">{% trans "View all" %}</a>
+      <h3 class="font-semibold">{{ labels.offerings_title }}</h3>
+      <a class="link" href="{{ admin_urls.products }}">{% trans "View all" %}</a>
     </div>
     {% if products %}
       <div class="overflow-x-auto">
         <table class="table">
-          <thead><tr><th>{% trans "Product" %}</th><th>{% trans "Price" %}</th><th>{% trans "Status" %}</th></tr></thead>
+          <thead><tr><th>{{ labels.offering_column }}</th><th>{% trans "Price" %}</th><th>{% trans "Status" %}</th></tr></thead>
           <tbody>
           {% for product in products %}
             <tr>
@@ -41,14 +42,14 @@
         </table>
       </div>
     {% else %}
-      {% include "components/empty_state.html" with title="No products yet" message="Add products to publish the first ecommerce catalogue." action_label="Add product" action_url="#admin-products" %}
+      {% include "components/empty_state.html" with title=labels.no_offerings_title message=labels.no_offerings_message action_label=labels.add_offering_action action_url=admin_urls.products_create %}
     {% endif %}
   </section>
 
   <section class="rounded-lg border border-base-300 bg-base-100 p-5">
     <div class="mb-4 flex items-center justify-between">
-      <h3 class="font-semibold">{% trans "Orders" %}</h3>
-      <a class="link" href="#admin-orders">{% trans "View all" %}</a>
+      <h3 class="font-semibold">{{ labels.orders_title }}</h3>
+      <a class="link" href="{{ admin_urls.orders }}">{% trans "View all" %}</a>
     </div>
     {% if recent_orders %}
       <div class="space-y-3">
@@ -63,9 +64,9 @@
         {% endfor %}
       </div>
     {% else %}
-      {% include "components/empty_state.html" with title="No orders yet" message="Orders will appear here once checkout is live." %}
+      {% include "components/empty_state.html" with title=labels.no_orders_title message=labels.no_orders_message %}
     {% endif %}
   </section>
 </div>
+{% endwith %}
 {% endblock %}
-

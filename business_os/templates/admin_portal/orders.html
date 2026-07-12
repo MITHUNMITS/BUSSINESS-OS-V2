@@ -1,14 +1,15 @@
 {% extends "admin_portal/base.html" %}
 {% load i18n %}
 
-{% block page_title %}{% trans "Orders" %}{% endblock %}
+{% block page_title %}{{ title }}{% endblock %}
 
 {% block content %}
+{% with labels=facility_profile.dashboard_labels terms=facility_profile.terms %}
 {% if orders %}
   <div class="rounded-lg border border-base-300 bg-base-100">
     <div class="overflow-x-auto">
       <table class="table">
-        <thead><tr><th>{% trans "Order" %}</th><th>{% trans "Customer" %}</th><th>{% trans "Total" %}</th><th>{% trans "Status" %}</th></tr></thead>
+        <thead><tr><th>{{ terms.order }}</th><th>{{ terms.customer }}</th><th>{% trans "Total" %}</th><th>{% trans "Status" %}</th></tr></thead>
         <tbody>
         {% for order in orders %}
           <tr>
@@ -23,7 +24,7 @@
     </div>
   </div>
 {% else %}
-  {% include "components/empty_state.html" with title="No orders yet" message="Orders will appear after customers complete checkout." %}
+  {% include "components/empty_state.html" with title=labels.no_orders_title message=labels.no_orders_message %}
 {% endif %}
+{% endwith %}
 {% endblock %}
-

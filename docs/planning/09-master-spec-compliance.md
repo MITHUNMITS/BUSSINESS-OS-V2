@@ -144,29 +144,48 @@ Pending:
 
 ## Facility-Aware Business OS Behavior
 
-Status: **planned, model foundation present**
+Status: **terminology and first offering-create form implemented for declared scope, deeper facility behavior pending**
 
 - Organization and facility models exist.
 - Facility type exists for online, retail, warehouse, and office.
 - Country/currency/timezone defaults support UAE and India.
+- Facility terminology resolver supports online, retail, warehouse, and office.
+- Unsupported facility types fall back safely to online-store terms.
+- Cross-organization facility input is rejected.
+- Business Admin navigation labels, dashboard labels, product/order page titles, and empty states use the resolved facility terminology.
+- Business Admin catalogue offering create form resolves labels, help text, submit copy, and offering type from the facility profile.
+- Office facilities create service offerings while online/retail/warehouse facilities remain product-compatible for the current catalogue model.
+
+Verified:
+
+- Online store terminology remains products/orders/inventory.
+- Retail terminology resolves sales and stock labels.
+- Warehouse terminology resolves items, fulfilment orders, and stock labels.
+- Office terminology resolves services, work requests, and resources labels.
+- Unknown facility type falls back safely.
+- Resolver is organization/facility scoped.
+- Online product create flow creates a default variant and audit event.
+- Office create flow uses service terms and creates a service offering.
+- Duplicate offering codes are rejected inside the tenant.
+- Business members cannot create offerings for another organization.
 
 Pending:
 
-- Terminology packs by facility type.
-- Facility-aware form schema resolver.
+- Facility-aware form schema resolution for remaining catalogue and non-catalogue forms.
 - Facility-specific default modules, dashboard widgets, workflows, reports, and website sections.
 
 ## Ecommerce First Slice
 
-Status: **foundation implemented and verified**
+Status: **foundation plus first admin create workflow implemented and verified**
 
 - Catalogue, variants, inventory-lite, cart, checkout, order, payment intent, and stock reservation foundations exist.
 - Stock reservation test passes.
 - Seed creates one organization, one website, three products, inventory, COD payment provider, and entitlements.
+- Business Admin can create a catalogue offering with facility-aware labels, tenant/facility validation, draft/active status, public visibility, default variant creation, canonical route wiring, and audit.
 
 Pending:
 
-- Production-grade admin CRUD forms for products/categories/variants.
+- Production-grade admin CRUD forms for categories, collections, images/media, options, variants, add-ons, price lists, and product edit/delete flows.
 - Public cart and checkout pages.
 - Shipping/tax rule UI and final checkout totals.
 - Order management workflow UI.
@@ -181,7 +200,7 @@ Passing:
 - Migrations applied.
 - `makemigrations --check --dry-run`.
 - Ruff.
-- Pytest: 39 tests.
+- Pytest: 54 tests.
 - Health, database health, generated website, and host-isolation smoke checks.
 
 Known dev-only warning:

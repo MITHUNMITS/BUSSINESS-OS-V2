@@ -13,7 +13,7 @@
     </div>
     <nav class="space-y-1 p-3" aria-label="{% trans 'Business admin' %}">
       {% for item in navigation %}
-        <a class="btn btn-ghost w-full justify-start" href="#{{ item.url_name }}" data-testid="nav-{{ item.url_name }}">
+        <a class="btn btn-ghost w-full justify-start" href="{{ item.url }}" data-testid="nav-{{ item.url_name }}">
           {{ item.label }}
         </a>
       {% endfor %}
@@ -28,7 +28,11 @@
         </div>
         <div class="flex items-center gap-2">
           <button class="btn btn-sm btn-outline" type="button">{% trans "Help" %}</button>
-          <button class="btn btn-sm btn-primary" type="button">{% trans "New" %}</button>
+          {% if primary_action_url %}
+            <a class="btn btn-sm btn-primary" href="{{ primary_action_url }}">
+              {% if primary_action_label %}{{ primary_action_label }}{% else %}{% trans "New" %}{% endif %}
+            </a>
+          {% endif %}
           <form method="post" action="{% if request.host_surface == 'business_admin' %}/logout/{% else %}{% url 'business-portal-logout' %}{% endif %}">
             {% csrf_token %}
             <button class="btn btn-sm btn-ghost" type="submit">{% trans "Logout" %}</button>
@@ -37,6 +41,13 @@
       </div>
     </header>
     <main id="main" class="bos-shell py-6">
+      {% if messages %}
+        <div class="mb-4 space-y-2">
+          {% for message in messages %}
+            <div class="alert alert-{{ message.tags|default:'info' }}">{{ message }}</div>
+          {% endfor %}
+        </div>
+      {% endif %}
       {% block content %}{% endblock %}
     </main>
   </div>

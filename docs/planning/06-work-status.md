@@ -44,18 +44,25 @@ Current focus:
 - Portal session boundary middleware added so business, platform, and future customer sessions cannot be reused across the wrong host surfaces.
 - Host-only session/CSRF cookie defaults and explicit canonical CSRF trusted origins documented in settings and Docker Compose.
 - Business Admin and Platform login completed for the declared scope with password reset, POST-only logout, login failure rate limiting, redirect safety, and auth audit events.
+- Facility terminology resolver completed for existing facility types: online, retail, warehouse, and office.
+- Business Admin navigation, dashboard labels, product/order page titles, and empty states now resolve through the facility terminology profile.
+- Facility-aware Business Admin catalogue offering create flow completed for the declared scope.
+- Catalogue offering creation now validates tenant/facility scope, duplicate codes/SKUs, draft/active status, public visibility, default variant creation, canonical route wiring, and create audit events.
 - Master-spec compliance snapshot added in `09-master-spec-compliance.md`.
 - Master-spec gap register added in `10-master-spec-gap-register.md`.
 - Section-by-section build verification gates added in `11-section-verification-gates.md`.
 - Next-day continuation prompt added in `12-next-day-prompt.md`.
 - Actor/support foundation implementation note added in `13-actor-portal-support-foundation.md`.
 - Business/Admin and Platform login completion note added in `14-business-platform-login-session-completion.md`.
+- Facility terminology resolver completion note added in `15-facility-terminology-completion.md`.
+- Catalogue offering admin create completion note added in `16-catalogue-offering-admin-create-completion.md`.
 
 ## In Progress
 
-- Product/admin/marketplace workflows need the next production implementation pass.
+- Catalogue category, collection, image/media, option, variant, add-on, price-list, import/export, and bulk-management workflows need future production implementation passes.
+- Marketplace/subscription workflows need the next production implementation pass.
 - Full DNS ownership verification, TLS provisioning, CDN purge, preview-token authorization, and production cookie/session policy need the next domain lifecycle pass.
-- Customer actor login, facility adaptation, billing edge cases, import/export, observability/DR, privacy/legal/audit, AI governance, and database governance are tracked as explicit planning gaps.
+- Customer actor login, remaining facility-aware form/workflow/report defaults, billing edge cases, import/export, observability/DR, privacy/legal/audit, AI governance, and database governance are tracked as explicit planning gaps.
 - Support mode still needs MFA/approval controls, controlled-write workflow policy, customer-facing visibility rules, and stronger immutable audit/retention work.
 - Business workflows need iterative completion module by module.
 - UI screens need Playwright and accessibility verification.

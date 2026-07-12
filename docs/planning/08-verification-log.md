@@ -180,6 +180,98 @@ Known dev-only warning:
 
 - Pytest still reports the existing local staticfiles warning: `No directory at: /app/staticfiles/`.
 
+## 2026-07-12 Catalogue Offering Admin Create Completion
+
+Affected master-spec sections:
+
+- Section 7: Business Admin UI/UX.
+- Section 11: Forms and controls, especially product/offering form.
+- Section 16: Security and multi-tenancy.
+- Section 27: Facility model and facility-aware adaptation.
+- Section 29: Catalogue & Offerings.
+- Section 39: Database governance.
+- Section 40: Codex delivery protocol.
+
+Implemented:
+
+- Added facility-aware Business Admin offering form schema and form validation.
+- Added canonical create route `/o/<organization_slug>/products/new/`.
+- Added Business Admin create view/template for catalogue offerings.
+- Added generic `create_offering` service while keeping `create_product` backwards compatible.
+- Added tenant/facility scope validation, duplicate code/SKU checks, unique slug generation, status/visibility support, default variant creation, and create audit event.
+- Added admin selector that includes drafts while public selectors remain active/visible-only.
+- Replaced catalogue dead-anchor actions with canonical admin routes.
+- Added implementation note `16-catalogue-offering-admin-create-completion.md`.
+
+Commands run:
+
+- `docker compose run --rm web sh docker/entrypoint.sh pytest tests/integration/test_catalogue_admin_create.py -q`: passed, 6 tests.
+- `docker compose run --rm web sh docker/entrypoint.sh ruff check business_os/apps/catalogue/forms.py business_os/apps/catalogue/services.py business_os/apps/catalogue/selectors.py business_os/apps/core/module_registry.py business_os/portals/views.py tests/integration/test_catalogue_admin_create.py`: passed.
+- `docker compose run --rm web sh docker/entrypoint.sh pytest tests/integration/test_facility_terminology.py tests/integration/test_catalogue_admin_create.py -q`: passed, 15 tests.
+- `docker compose run --rm web sh docker/entrypoint.sh python manage.py check`: passed.
+- `docker compose run --rm web sh docker/entrypoint.sh python manage.py makemigrations --check --dry-run`: passed with no changes detected.
+- `docker compose run --rm web sh docker/entrypoint.sh python manage.py migrate --check`: passed with no unapplied migrations.
+- `docker compose run --rm web sh docker/entrypoint.sh ruff check .`: passed.
+- `docker compose run --rm web sh docker/entrypoint.sh pytest`: passed, 54 tests.
+
+Test coverage added:
+
+- Business Admin can create an online product offering with a default variant and audit event.
+- Business Admin product list shows draft offerings.
+- Office facility create form uses service terms and creates a service offering.
+- Duplicate code returns a form error and does not create a second offering.
+- Business member cannot create an offering for another organization.
+- Catalogue admin links are real canonical routes, not dead anchors.
+
+Known dev-only warning:
+
+- Pytest still reports the existing local staticfiles warning: `No directory at: /app/staticfiles/`.
+
+## 2026-07-12 Facility Terminology Resolver Completion
+
+Affected master-spec sections:
+
+- Section 7: Business Admin UI/UX.
+- Section 11: Forms and controls.
+- Section 16: Security and multi-tenancy.
+- Section 27: Facility model and facility-aware adaptation.
+- Section 29: Module catalogue.
+- Section 40: Codex delivery protocol.
+
+Implemented:
+
+- Added tenant-scoped facility terminology resolver for online, retail, warehouse, and office facility types.
+- Added safe fallback to online-store terminology for unknown or unsupported facility types.
+- Added cross-organization facility rejection.
+- Wired facility terminology into Business Admin navigation labels.
+- Wired facility terminology into dashboard labels and empty states.
+- Wired facility terminology into product/order page titles and empty states.
+- Added implementation note `15-facility-terminology-completion.md`.
+
+Commands run:
+
+- `docker compose run --rm web sh docker/entrypoint.sh python manage.py check`: passed.
+- `docker compose run --rm web sh docker/entrypoint.sh pytest tests/integration/test_facility_terminology.py -q`: passed, 9 tests.
+- `docker compose run --rm web sh docker/entrypoint.sh ruff check business_os/apps/organizations/facility_profiles.py business_os/apps/core/module_registry.py business_os/portals/views.py tests/integration/test_facility_terminology.py`: passed after wrapping one long function signature.
+- `docker compose run --rm web sh docker/entrypoint.sh ruff check .`: passed.
+- `docker compose run --rm web sh docker/entrypoint.sh python manage.py makemigrations --check --dry-run`: passed with no changes detected.
+- `docker compose run --rm web sh docker/entrypoint.sh python manage.py migrate --check`: passed with no unapplied migrations.
+- `docker compose run --rm web sh docker/entrypoint.sh pytest`: passed, 48 tests.
+
+Test coverage added:
+
+- Online store terminology remains products/orders/inventory.
+- Retail terminology resolves sales and stock labels.
+- Warehouse terminology resolves items, fulfilment orders, and stock labels.
+- Office terminology resolves services, work requests, and resources labels.
+- Unknown facility type falls back safely to online-store terminology.
+- Resolver rejects a facility from another organization.
+- Business Admin dashboard/navigation/page labels use the resolved terminology.
+
+Known dev-only warning:
+
+- Pytest still reports the existing local staticfiles warning: `No directory at: /app/staticfiles/`.
+
 ## 2026-07-12 Business Admin And Platform Login Completion
 
 Affected master-spec sections:

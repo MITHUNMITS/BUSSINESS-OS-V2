@@ -1,0 +1,102 @@
+{% extends "admin_portal/base.html" %}
+{% load i18n %}
+
+{% block eyebrow %}{{ form_schema.eyebrow }}{% endblock %}
+{% block page_title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="mb-4">
+  <a class="link" href="{{ admin_urls.products }}">&larr; {% blocktrans with offerings=facility_profile.terms.offerings|lower %}Back to {{ offerings }}{% endblocktrans %}</a>
+</div>
+
+<form method="post" class="space-y-6" novalidate>
+  {% csrf_token %}
+
+  {% if form.non_field_errors %}
+    <div class="alert alert-error">
+      <div>
+        {% for error in form.non_field_errors %}
+          <p>{{ error }}</p>
+        {% endfor %}
+      </div>
+    </div>
+  {% endif %}
+
+  <section class="rounded-lg border border-base-300 bg-base-100 p-5">
+    <div class="grid gap-4 lg:grid-cols-2">
+      <label class="form-control w-full">
+        <span class="label"><span class="label-text">{{ form.name.label }}</span></span>
+        {{ form.name }}
+        {% for error in form.name.errors %}<span class="mt-1 text-sm text-error">{{ error }}</span>{% endfor %}
+      </label>
+
+      <label class="form-control w-full">
+        <span class="label"><span class="label-text">{{ form.code.label }}</span></span>
+        {{ form.code }}
+        {% if form.code.help_text %}<span class="mt-1 text-xs text-base-content/60">{{ form.code.help_text }}</span>{% endif %}
+        {% for error in form.code.errors %}<span class="mt-1 text-sm text-error">{{ error }}</span>{% endfor %}
+      </label>
+
+      <label class="form-control w-full lg:col-span-2">
+        <span class="label"><span class="label-text">{{ form.summary.label }}</span></span>
+        {{ form.summary }}
+        {% if form.summary.help_text %}<span class="mt-1 text-xs text-base-content/60">{{ form.summary.help_text }}</span>{% endif %}
+        {% for error in form.summary.errors %}<span class="mt-1 text-sm text-error">{{ error }}</span>{% endfor %}
+      </label>
+
+      <label class="form-control w-full lg:col-span-2">
+        <span class="label"><span class="label-text">{{ form.description.label }}</span></span>
+        {{ form.description }}
+        {% if form.description.help_text %}<span class="mt-1 text-xs text-base-content/60">{{ form.description.help_text }}</span>{% endif %}
+        {% for error in form.description.errors %}<span class="mt-1 text-sm text-error">{{ error }}</span>{% endfor %}
+      </label>
+
+      <label class="form-control w-full">
+        <span class="label"><span class="label-text">{{ form.base_price.label }}</span></span>
+        {{ form.base_price }}
+        {% for error in form.base_price.errors %}<span class="mt-1 text-sm text-error">{{ error }}</span>{% endfor %}
+      </label>
+
+      <label class="form-control w-full">
+        <span class="label"><span class="label-text">{{ form.currency.label }}</span></span>
+        {{ form.currency }}
+        {% for error in form.currency.errors %}<span class="mt-1 text-sm text-error">{{ error }}</span>{% endfor %}
+      </label>
+
+      <label class="form-control w-full">
+        <span class="label"><span class="label-text">{{ form.status.label }}</span></span>
+        {{ form.status }}
+        {% if form.status.help_text %}<span class="mt-1 text-xs text-base-content/60">{{ form.status.help_text }}</span>{% endif %}
+        {% for error in form.status.errors %}<span class="mt-1 text-sm text-error">{{ error }}</span>{% endfor %}
+      </label>
+    </div>
+  </section>
+
+  <section class="rounded-lg border border-base-300 bg-base-100 p-5">
+    <div class="space-y-4">
+      <label class="flex items-start gap-3">
+        {{ form.visible_on_website }}
+        <span>
+          <span class="block font-medium">{{ form.visible_on_website.label }}</span>
+          {% if form.visible_on_website.help_text %}<span class="block text-sm text-base-content/60">{{ form.visible_on_website.help_text }}</span>{% endif %}
+          {% for error in form.visible_on_website.errors %}<span class="block text-sm text-error">{{ error }}</span>{% endfor %}
+        </span>
+      </label>
+
+      <label class="flex items-start gap-3">
+        {{ form.whatsapp_inquiry_enabled }}
+        <span>
+          <span class="block font-medium">{{ form.whatsapp_inquiry_enabled.label }}</span>
+          {% if form.whatsapp_inquiry_enabled.help_text %}<span class="block text-sm text-base-content/60">{{ form.whatsapp_inquiry_enabled.help_text }}</span>{% endif %}
+          {% for error in form.whatsapp_inquiry_enabled.errors %}<span class="block text-sm text-error">{{ error }}</span>{% endfor %}
+        </span>
+      </label>
+    </div>
+  </section>
+
+  <div class="flex items-center justify-end gap-3">
+    <a class="btn btn-ghost" href="{{ admin_urls.products }}">{% trans "Cancel" %}</a>
+    <button class="btn btn-primary" type="submit">{{ form_schema.submit_label }}</button>
+  </div>
+</form>
+{% endblock %}
