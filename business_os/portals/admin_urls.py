@@ -36,6 +36,31 @@ urlpatterns = [
         name="admin-products-restore",
     ),
     path("o/<slug:organization_slug>/categories/", views.admin_categories, name="admin-categories"),
+    path(
+        "o/<slug:organization_slug>/categories/new/",
+        views.admin_category_create,
+        name="admin-categories-create",
+    ),
+    path(
+        "o/<slug:organization_slug>/categories/<uuid:category_id>/",
+        views.admin_category_detail,
+        name="admin-categories-detail",
+    ),
+    path(
+        "o/<slug:organization_slug>/categories/<uuid:category_id>/edit/",
+        views.admin_category_edit,
+        name="admin-categories-edit",
+    ),
+    path(
+        "o/<slug:organization_slug>/categories/<uuid:category_id>/archive/",
+        views.admin_category_archive,
+        name="admin-categories-archive",
+    ),
+    path(
+        "o/<slug:organization_slug>/categories/<uuid:category_id>/restore/",
+        views.admin_category_restore,
+        name="admin-categories-restore",
+    ),
     path("o/<slug:organization_slug>/inventory/", views.admin_inventory, name="admin-inventory"),
     path("o/<slug:organization_slug>/orders/", views.admin_orders, name="admin-orders"),
     path("o/<slug:organization_slug>/payments/", views.admin_payments, name="admin-payments"),

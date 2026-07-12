@@ -144,7 +144,7 @@ Pending:
 
 ## Facility-Aware Business OS Behavior
 
-Status: **terminology and basic offering form lifecycle implemented for declared scope, deeper facility behavior pending**
+Status: **terminology plus basic offering/category form lifecycles implemented for declared scope, deeper facility behavior pending**
 
 - Organization and facility models exist.
 - Facility type exists for online, retail, warehouse, and office.
@@ -155,6 +155,7 @@ Status: **terminology and basic offering form lifecycle implemented for declared
 - Business Admin navigation labels, dashboard labels, product/order page titles, and empty states use the resolved facility terminology.
 - Business Admin catalogue offering create form resolves labels, help text, submit copy, and offering type from the facility profile.
 - Business Admin catalogue offering edit form reuses the same facility-aware schema and service terminology.
+- Business Admin catalogue category create/edit forms resolve labels, help text, submit copy, and parent terminology from the facility profile.
 - Office facilities create service offerings while online/retail/warehouse facilities remain product-compatible for the current catalogue model.
 
 Verified:
@@ -170,6 +171,9 @@ Verified:
 - Office edit flow uses service terms.
 - Offering edit synchronizes the default variant and writes an audit event.
 - Offering archive/restore use POST-only status transitions and write audit events.
+- Category list/create/detail/edit/archive/restore use facility terminology.
+- Category parent validation is organization/facility scoped.
+- Offering create/edit can assign categories.
 - Duplicate offering codes are rejected inside the tenant.
 - Business members cannot create offerings for another organization.
 - Business members cannot access another organization's offering lifecycle.
@@ -181,16 +185,18 @@ Pending:
 
 ## Ecommerce First Slice
 
-Status: **foundation plus basic offering admin lifecycle implemented and verified**
+Status: **foundation plus basic offering/category admin lifecycle implemented and verified**
 
 - Catalogue, variants, inventory-lite, cart, checkout, order, payment intent, and stock reservation foundations exist.
 - Stock reservation test passes.
 - Seed creates one organization, one website, three products, inventory, COD payment provider, and entitlements.
 - Business Admin can create, view, edit, archive, and restore a basic catalogue offering with facility-aware labels, tenant/facility validation, draft/active/archive status handling, public visibility controls, default variant synchronization, canonical route wiring, and audit.
+- Business Admin can list, create, view, edit, archive, and restore basic catalogue categories with facility-aware labels, tenant/facility validation, parent hierarchy validation, canonical route wiring, and audit.
+- Offerings can be assigned to categories from the Business Admin create/edit flow.
 
 Pending:
 
-- Production-grade admin CRUD forms for categories, collections, images/media, options, variants, add-ons, price lists, and richer product lifecycle/bulk-management flows.
+- Production-grade admin CRUD forms for collections, images/media, options, variants, add-ons, price lists, and richer catalogue lifecycle/bulk-management flows.
 - Public cart and checkout pages.
 - Shipping/tax rule UI and final checkout totals.
 - Order management workflow UI.
@@ -205,7 +211,7 @@ Passing:
 - Migrations applied.
 - `makemigrations --check --dry-run`.
 - Ruff.
-- Pytest: 60 tests.
+- Pytest: 68 tests.
 - Health, database health, generated website, and host-isolation smoke checks.
 
 Known dev-only warning:

@@ -7,8 +7,10 @@ from typing import Any
 
 from django import forms
 from django.conf import settings
+from django.db.models import Q
+from django.utils.text import slugify
 
-from business_os.apps.catalogue.models import Offering, OfferingVariant
+from business_os.apps.catalogue.models import Category, Offering, OfferingVariant
 from business_os.apps.core.models import RecordStatus
 from business_os.apps.organizations.facility_profiles import FacilityProfile
 from business_os.apps.organizations.models import Facility, Organization
@@ -28,6 +30,17 @@ class OfferingFormSchema:
     help_texts: dict[str, str]
 
 
+@dataclass(frozen=True)
+class CategoryFormSchema:
+    """Facility-aware schema for the first Business Admin category form."""
+
+    page_title: str
+    eyebrow: str
+    submit_label: str
+    labels: dict[str, str]
+    help_texts: dict[str, str]
+
+
 def resolve_offering_form_schema(
     *,
     facility_profile: FacilityProfile,
@@ -35,6 +48,7 @@ def resolve_offering_form_schema(
 ) -> OfferingFormSchema:
     offering = facility_profile.terms["offering"]
     offerings = facility_profile.terms["offerings"]
+    category = facility_profile.terms["category"]
     offering_lower = offering.lower()
     is_edit = mode == "edit"
 
@@ -48,6 +62,7 @@ def resolve_offering_form_schema(
             "code": f"{offering} code / SKU",
             "summary": f"{offering} summary",
             "description": f"{offering} description",
+            "category": category,
             "base_price": "Base price",
             "currency": "Currency",
             "status": "Publishing status",
@@ -61,6 +76,7 @@ def resolve_offering_form_schema(
             ),
             "summary": f"Short optional summary shown in {offering_lower} cards.",
             "description": f"Longer optional description for the {offering_lower} detail page.",
+            "category": f"Optional {category.lower()} used to organize this {offering_lower}.",
             "status": (
                 "Published offerings are available to public website and checkout flows "
                 "when visible."
@@ -73,11 +89,47 @@ def resolve_offering_form_schema(
     )
 
 
+def resolve_category_form_schema(
+    *,
+    facility_profile: FacilityProfile,
+    mode: str = "create",
+) -> CategoryFormSchema:
+    category = facility_profile.terms["category"]
+    categories = facility_profile.terms["categories"]
+    category_lower = category.lower()
+    is_edit = mode == "edit"
+
+    return CategoryFormSchema(
+        page_title=f"{'Edit' if is_edit else 'Add'} {category_lower}",
+        eyebrow=f"{categories} / {'Edit' if is_edit else 'New'}",
+        submit_label=f"{'Save' if is_edit else 'Create'} {category_lower}",
+        labels={
+            "name": f"{category} name",
+            "slug": f"{category} URL slug",
+            "parent": f"Parent {category.lower()}",
+            "description": f"{category} description",
+            "sort_order": "Sort order",
+            "status": "Publishing status",
+        },
+        help_texts={
+            "slug": (
+                f"Optional public URL-safe slug for this {category_lower}. "
+                "Leave blank to generate one from the name."
+            ),
+            "parent": f"Optional parent {category_lower} for a simple hierarchy.",
+            "description": f"Optional internal and public description for this {category_lower}.",
+            "sort_order": "Lower numbers appear first in admin and public catalogue lists.",
+            "status": "Active categories are ready for use; drafts stay internal.",
+        },
+    )
+
+
 class OfferingAdminForm(forms.Form):
     name = forms.CharField(max_length=180)
     code = forms.CharField(max_length=80)
     summary = forms.CharField(max_length=255, required=False)
     description = forms.CharField(required=False, widget=forms.Textarea)
+    category = forms.ModelChoiceField(queryset=Category.objects.none(), required=False)
     base_price = forms.DecimalField(
         max_digits=12,
         decimal_places=2,
@@ -103,6 +155,7 @@ class OfferingAdminForm(forms.Form):
     ) -> None:
         self.organization = organization
         self.facility_profile = facility_profile
+        self.facility = facility_profile.facility
         self.instance = instance
         self.schema = resolve_offering_form_schema(
             facility_profile=facility_profile,
@@ -117,6 +170,11 @@ class OfferingAdminForm(forms.Form):
         ]
         self.fields["currency"].initial = organization.default_currency
         self.fields["status"].initial = RecordStatus.ACTIVE
+        self.fields["category"].queryset = _category_queryset_for_facility(
+            organization=organization,
+            facility=self.facility,
+        ).exclude(status__in=[RecordStatus.ARCHIVED, RecordStatus.DELETED])
+        self.fields["category"].empty_label = f"No {facility_profile.terms['category'].lower()}"
 
         for name, label in self.schema.labels.items():
             self.fields[name].label = label
@@ -164,6 +222,7 @@ class OfferingAdminForm(forms.Form):
             "code": self.cleaned_data["code"],
             "summary": self.cleaned_data["summary"].strip(),
             "description": self.cleaned_data["description"].strip(),
+            "category": self.cleaned_data["category"],
             "base_price": self.cleaned_data["base_price"],
             "currency": self.cleaned_data["currency"],
             "status": status,
@@ -178,15 +237,125 @@ class OfferingAdminForm(forms.Form):
         select_class = "select select-bordered w-full"
         checkbox_class = "checkbox checkbox-primary"
 
-        for field_name in ("name", "code", "summary", "base_price", "currency", "status"):
+        for field_name in (
+            "name",
+            "code",
+            "summary",
+            "category",
+            "base_price",
+            "currency",
+            "status",
+        ):
             self.fields[field_name].widget.attrs.setdefault(
                 "class",
-                select_class if field_name in {"currency", "status"} else input_class,
+                select_class if field_name in {"category", "currency", "status"} else input_class,
             )
         self.fields["description"].widget.attrs.setdefault("class", textarea_class)
         self.fields["description"].widget.attrs.setdefault("rows", 5)
         self.fields["visible_on_website"].widget.attrs.setdefault("class", checkbox_class)
         self.fields["whatsapp_inquiry_enabled"].widget.attrs.setdefault("class", checkbox_class)
+
+
+class CategoryAdminForm(forms.Form):
+    name = forms.CharField(max_length=160)
+    slug = forms.SlugField(max_length=160, required=False)
+    parent = forms.ModelChoiceField(queryset=Category.objects.none(), required=False)
+    description = forms.CharField(required=False, widget=forms.Textarea)
+    sort_order = forms.IntegerField(min_value=0, initial=0)
+    status = forms.ChoiceField(
+        choices=(
+            (RecordStatus.ACTIVE, "Publish now"),
+            (RecordStatus.DRAFT, "Save as draft"),
+        ),
+    )
+
+    def __init__(
+        self,
+        *args: Any,
+        organization: Organization,
+        facility_profile: FacilityProfile,
+        instance: Category | None = None,
+        **kwargs: Any,
+    ) -> None:
+        self.organization = organization
+        self.facility_profile = facility_profile
+        self.facility = facility_profile.facility
+        self.instance = instance
+        self.schema = resolve_category_form_schema(
+            facility_profile=facility_profile,
+            mode="edit" if instance is not None else "create",
+        )
+        if instance is not None and not args and "initial" not in kwargs:
+            kwargs["initial"] = _initial_for_category(instance)
+        super().__init__(*args, **kwargs)
+
+        self.fields["parent"].queryset = _category_parent_queryset(
+            organization=organization,
+            facility=self.facility,
+            instance=instance,
+        )
+        self.fields["parent"].empty_label = (
+            f"No parent {facility_profile.terms['category'].lower()}"
+        )
+        self.fields["status"].initial = RecordStatus.ACTIVE
+
+        for name, label in self.schema.labels.items():
+            self.fields[name].label = label
+        for name, help_text in self.schema.help_texts.items():
+            self.fields[name].help_text = help_text
+
+        self._apply_widget_classes()
+
+    def clean_slug(self) -> str:
+        raw_slug = self.cleaned_data["slug"].strip()
+        if not raw_slug:
+            return ""
+        slug = slugify(raw_slug)
+        conflicts = Category.objects.filter(
+            organization=self.organization,
+            slug__iexact=slug,
+        )
+        if self.instance is not None:
+            conflicts = conflicts.exclude(id=self.instance.id)
+        if conflicts.exists():
+            category = self.facility_profile.terms["category"].lower()
+            raise forms.ValidationError(f"A {category} with this slug already exists.")
+        return slug
+
+    def clean_parent(self) -> Category | None:
+        parent = self.cleaned_data["parent"]
+        if parent is None:
+            return None
+        if parent.organization_id != self.organization.id:
+            raise forms.ValidationError("Parent category must belong to this organization.")
+        if self.facility is not None and parent.facility_id not in {None, self.facility.id}:
+            raise forms.ValidationError("Parent category must belong to this facility.")
+        if self.instance is not None and parent.id == self.instance.id:
+            raise forms.ValidationError("A category cannot be its own parent.")
+        return parent
+
+    def to_service_kwargs(self) -> dict[str, Any]:
+        return {
+            "name": self.cleaned_data["name"].strip(),
+            "slug": self.cleaned_data["slug"],
+            "parent": self.cleaned_data["parent"],
+            "description": self.cleaned_data["description"].strip(),
+            "sort_order": self.cleaned_data["sort_order"],
+            "status": self.cleaned_data["status"],
+        }
+
+    def _apply_widget_classes(self) -> None:
+        input_class = "input input-bordered w-full"
+        textarea_class = "textarea textarea-bordered min-h-28 w-full"
+        select_class = "select select-bordered w-full"
+
+        for field_name in ("name", "slug", "parent", "sort_order", "status"):
+            self.fields[field_name].widget.attrs.setdefault(
+                "class",
+                select_class if field_name in {"parent", "status"} else input_class,
+            )
+        self.fields["description"].widget.attrs.setdefault("class", textarea_class)
+        self.fields["description"].widget.attrs.setdefault("rows", 5)
 
 
 def _offering_type_for_facility(facility_profile: FacilityProfile) -> str:
@@ -201,6 +370,7 @@ def _initial_for_offering(offering: Offering) -> dict[str, Any]:
         "code": offering.code,
         "summary": offering.summary,
         "description": offering.description,
+        "category": offering.category,
         "base_price": offering.base_price,
         "currency": offering.currency,
         "status": offering.status,
@@ -221,3 +391,54 @@ def _default_variant_for_offering(offering: Offering | None) -> OfferingVariant 
         .order_by("created_at")
         .first()
     )
+
+
+def _initial_for_category(category: Category) -> dict[str, Any]:
+    return {
+        "name": category.name,
+        "slug": category.slug,
+        "parent": category.parent,
+        "description": category.description,
+        "sort_order": category.sort_order,
+        "status": category.status,
+    }
+
+
+def _category_queryset_for_facility(
+    *,
+    organization: Organization,
+    facility: Facility | None,
+):
+    queryset = Category.objects.filter(organization=organization)
+    if facility is None:
+        return queryset.filter(facility__isnull=True)
+    return queryset.filter(Q(facility__isnull=True) | Q(facility=facility))
+
+
+def _category_parent_queryset(
+    *,
+    organization: Organization,
+    facility: Facility | None,
+    instance: Category | None,
+):
+    queryset = _category_queryset_for_facility(
+        organization=organization,
+        facility=facility,
+    ).exclude(status__in=[RecordStatus.ARCHIVED, RecordStatus.DELETED])
+    if instance is None:
+        return queryset.order_by("sort_order", "name")
+    excluded_ids = {instance.id, *_category_descendant_ids(instance)}
+    return queryset.exclude(id__in=excluded_ids).order_by("sort_order", "name")
+
+
+def _category_descendant_ids(category: Category) -> set[Any]:
+    descendants: set[Any] = set()
+    frontier = [category.id]
+    while frontier:
+        child_ids = list(
+            Category.objects.filter(parent_id__in=frontier).values_list("id", flat=True)
+        )
+        new_child_ids = [child_id for child_id in child_ids if child_id not in descendants]
+        descendants.update(new_child_ids)
+        frontier = new_child_ids
+    return descendants

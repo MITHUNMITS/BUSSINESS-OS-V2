@@ -6,16 +6,22 @@ from django.http import HttpResponseBadRequest, HttpResponseNotAllowed
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 
-from business_os.apps.catalogue.forms import OfferingAdminForm
+from business_os.apps.catalogue.forms import CategoryAdminForm, OfferingAdminForm
 from business_os.apps.catalogue.selectors import (
+    admin_categories_for_organization,
+    admin_category_for_organization,
     admin_offering_for_organization,
     admin_offerings_for_organization,
     visible_offerings_for_organization,
 )
 from business_os.apps.catalogue.services import (
+    archive_category,
     archive_offering,
+    create_category,
     create_offering,
+    restore_category,
     restore_offering,
+    update_category,
     update_offering,
 )
 from business_os.apps.commerce.models import Order
@@ -74,11 +80,22 @@ def _admin_urls(organization):
         "products": f"{base}/products/",
         "products_create": f"{base}/products/new/",
         "categories": f"{base}/categories/",
+        "categories_create": f"{base}/categories/new/",
         "inventory": f"{base}/inventory/",
         "orders": f"{base}/orders/",
         "payments": f"{base}/payments/",
         "analytics": f"{base}/analytics/",
         "settings": f"{base}/settings/",
+    }
+
+
+def _category_urls(organization, category):
+    base = f"/o/{organization.slug}/categories/{category.id}"
+    return {
+        "detail": f"{base}/",
+        "edit": f"{base}/edit/",
+        "archive": f"{base}/archive/",
+        "restore": f"{base}/restore/",
     }
 
 
@@ -101,6 +118,12 @@ def _admin_payload(request, organization, navigation, **extra):
     }
     payload.update(extra)
     return payload
+
+
+def _admin_category_context(request, organization_slug: str, category_id):
+    organization, navigation = _organization_context(request, organization_slug)
+    category = get_object_or_404(admin_category_for_organization(organization, category_id))
+    return organization, navigation, category
 
 
 def _admin_offering_context(request, organization_slug: str, offering_id):
@@ -147,6 +170,17 @@ def _offering_audit_payload(offering):
         "visible_on_website": offering.visible_on_website,
         "whatsapp_inquiry_enabled": offering.whatsapp_inquiry_enabled,
         "facility_id": str(offering.facility_id) if offering.facility_id else "",
+    }
+
+
+def _category_audit_payload(category):
+    return {
+        "name": category.name,
+        "slug": category.slug,
+        "status": category.status,
+        "parent_id": str(category.parent_id) if category.parent_id else "",
+        "sort_order": category.sort_order,
+        "facility_id": str(category.facility_id) if category.facility_id else "",
     }
 
 
@@ -425,16 +459,217 @@ def admin_product_restore(request, organization_slug: str, offering_id):
 
 def admin_categories(request, organization_slug: str):
     organization, navigation = _organization_context(request, organization_slug)
+    categories = admin_categories_for_organization(organization)
     return render(
         request,
-        "admin_portal/simple_page.html",
+        "admin_portal/categories.html",
         _admin_payload(
             request,
             organization,
             navigation,
+            categories=categories,
             title=_admin_page_title(request, "admin-categories", "Categories"),
         ),
     )
+
+
+def admin_category_create(request, organization_slug: str):
+    if request.method not in {"GET", "POST"}:
+        return HttpResponseNotAllowed(["GET", "POST"])
+
+    organization, navigation = _organization_context(request, organization_slug)
+    form = CategoryAdminForm(
+        request.POST if request.method == "POST" else None,
+        organization=organization,
+        facility_profile=request.facility_profile,
+    )
+    if request.method == "POST" and form.is_valid():
+        try:
+            category = create_category(
+                organization=organization,
+                facility=request.facility,
+                created_by=request.user,
+                **form.to_service_kwargs(),
+            )
+        except ValueError as exc:
+            form.add_error(None, str(exc))
+        else:
+            audit_event(
+                action="catalogue.category.created",
+                request=request,
+                organization=organization,
+                facility=request.facility,
+                actor=request.user,
+                target=AuditTarget("catalogue_category", str(category.id)),
+                after=_category_audit_payload(category),
+                source="business_admin",
+            )
+            messages.success(
+                request,
+                f"{request.facility_profile.terms['category']} created.",
+            )
+            return redirect(_category_urls(organization, category)["detail"])
+
+    return render(
+        request,
+        "admin_portal/category_form.html",
+        _admin_payload(
+            request,
+            organization,
+            navigation,
+            form=form,
+            form_schema=form.schema,
+            title=form.schema.page_title,
+        ),
+    )
+
+
+def admin_category_detail(request, organization_slug: str, category_id):
+    organization, navigation, category = _admin_category_context(
+        request,
+        organization_slug,
+        category_id,
+    )
+    return render(
+        request,
+        "admin_portal/category_detail.html",
+        _admin_payload(
+            request,
+            organization,
+            navigation,
+            category=category,
+            category_urls=_category_urls(organization, category),
+            offering_count=category.offerings.count(),
+            child_count=category.children.exclude(status=RecordStatus.DELETED).count(),
+            title=category.name,
+            is_archived=category.status == RecordStatus.ARCHIVED,
+        ),
+    )
+
+
+def admin_category_edit(request, organization_slug: str, category_id):
+    if request.method not in {"GET", "POST"}:
+        return HttpResponseNotAllowed(["GET", "POST"])
+
+    organization, navigation, category = _admin_category_context(
+        request,
+        organization_slug,
+        category_id,
+    )
+    form = CategoryAdminForm(
+        request.POST if request.method == "POST" else None,
+        organization=organization,
+        facility_profile=request.facility_profile,
+        instance=category,
+    )
+    if request.method == "POST" and form.is_valid():
+        before = _category_audit_payload(category)
+        try:
+            category = update_category(
+                organization=organization,
+                category=category,
+                facility=request.facility,
+                updated_by=request.user,
+                **form.to_service_kwargs(),
+            )
+        except ValueError as exc:
+            form.add_error(None, str(exc))
+        else:
+            audit_event(
+                action="catalogue.category.updated",
+                request=request,
+                organization=organization,
+                facility=request.facility,
+                actor=request.user,
+                target=AuditTarget("catalogue_category", str(category.id)),
+                before=before,
+                after=_category_audit_payload(category),
+                source="business_admin",
+            )
+            messages.success(
+                request,
+                f"{request.facility_profile.terms['category']} updated.",
+            )
+            return redirect(_category_urls(organization, category)["detail"])
+
+    return render(
+        request,
+        "admin_portal/category_form.html",
+        _admin_payload(
+            request,
+            organization,
+            navigation,
+            form=form,
+            form_schema=form.schema,
+            title=form.schema.page_title,
+            category=category,
+            cancel_url=_category_urls(organization, category)["detail"],
+            return_url=_category_urls(organization, category)["detail"],
+        ),
+    )
+
+
+def admin_category_archive(request, organization_slug: str, category_id):
+    if request.method != "POST":
+        return HttpResponseNotAllowed(["POST"])
+
+    organization, _navigation, category = _admin_category_context(
+        request,
+        organization_slug,
+        category_id,
+    )
+    before = _category_audit_payload(category)
+    category = archive_category(
+        organization=organization,
+        category=category,
+        archived_by=request.user,
+    )
+    audit_event(
+        action="catalogue.category.archived",
+        request=request,
+        organization=organization,
+        facility=request.facility,
+        actor=request.user,
+        target=AuditTarget("catalogue_category", str(category.id)),
+        before=before,
+        after=_category_audit_payload(category),
+        source="business_admin",
+    )
+    messages.success(request, f"{request.facility_profile.terms['category']} archived.")
+    return redirect(_category_urls(organization, category)["detail"])
+
+
+def admin_category_restore(request, organization_slug: str, category_id):
+    if request.method != "POST":
+        return HttpResponseNotAllowed(["POST"])
+
+    organization, _navigation, category = _admin_category_context(
+        request,
+        organization_slug,
+        category_id,
+    )
+    before = _category_audit_payload(category)
+    category = restore_category(
+        organization=organization,
+        category=category,
+        restored_by=request.user,
+    )
+    audit_event(
+        action="catalogue.category.restored",
+        request=request,
+        organization=organization,
+        facility=request.facility,
+        actor=request.user,
+        target=AuditTarget("catalogue_category", str(category.id)),
+        before=before,
+        after=_category_audit_payload(category),
+        source="business_admin",
+    )
+    messages.success(
+        request,
+        f"{request.facility_profile.terms['category']} restored as draft.",
+    )
+    return redirect(_category_urls(organization, category)["detail"])
 
 
 def admin_inventory(request, organization_slug: str):

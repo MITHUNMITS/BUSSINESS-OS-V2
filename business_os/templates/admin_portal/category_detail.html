@@ -1,0 +1,84 @@
+{% extends "admin_portal/base.html" %}
+{% load i18n %}
+
+{% block eyebrow %}{% blocktrans with categories=facility_profile.terms.categories %}{{ categories }} / Detail{% endblocktrans %}{% endblock %}
+{% block page_title %}{{ title }}{% endblock %}
+
+{% block content %}
+{% with terms=facility_profile.terms %}
+<div class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+  <a class="link" href="{{ admin_urls.categories }}">&larr; {% blocktrans with categories=terms.categories|lower %}Back to {{ categories }}{% endblocktrans %}</a>
+  <div class="flex flex-wrap gap-2">
+    <a class="btn btn-primary" href="{{ category_urls.edit }}">{% blocktrans with category=terms.category|lower %}Edit {{ category }}{% endblocktrans %}</a>
+    {% if is_archived %}
+      <form method="post" action="{{ category_urls.restore }}">
+        {% csrf_token %}
+        <button class="btn btn-outline" type="submit">{% trans "Restore as draft" %}</button>
+      </form>
+    {% else %}
+      <form method="post" action="{{ category_urls.archive }}">
+        {% csrf_token %}
+        <button class="btn btn-outline btn-error" type="submit">{% blocktrans with category=terms.category|lower %}Archive {{ category }}{% endblocktrans %}</button>
+      </form>
+    {% endif %}
+  </div>
+</div>
+
+<div class="grid gap-6 lg:grid-cols-3">
+  <section class="rounded-lg border border-base-300 bg-base-100 p-5 lg:col-span-2">
+    <div class="flex flex-wrap items-start justify-between gap-3">
+      <div>
+        <p class="text-sm text-base-content/60">{{ terms.category }}</p>
+        <h3 class="text-2xl font-semibold">{{ category.name }}</h3>
+        {% if category.description %}
+          <p class="mt-2 whitespace-pre-line text-base-content/70">{{ category.description }}</p>
+        {% endif %}
+      </div>
+      {% include "components/status_badge.html" with status=category.status %}
+    </div>
+
+    <div class="mt-6 grid gap-4 sm:grid-cols-2">
+      <div>
+        <p class="text-sm text-base-content/60">{% trans "Slug" %}</p>
+        <p class="font-medium">{{ category.slug }}</p>
+      </div>
+      <div>
+        <p class="text-sm text-base-content/60">{% trans "Sort order" %}</p>
+        <p class="font-medium">{{ category.sort_order }}</p>
+      </div>
+      <div>
+        <p class="text-sm text-base-content/60">{% trans "Parent" %}</p>
+        <p class="font-medium">{% if category.parent %}{{ category.parent.name }}{% else %}{% trans "No parent" %}{% endif %}</p>
+      </div>
+      <div>
+        <p class="text-sm text-base-content/60">{% trans "Facility" %}</p>
+        <p class="font-medium">{% if category.facility %}{{ category.facility.name }}{% else %}{% trans "Organization-wide" %}{% endif %}</p>
+      </div>
+    </div>
+  </section>
+
+  <aside class="space-y-6">
+    <section class="rounded-lg border border-base-300 bg-base-100 p-5">
+      <h3 class="font-semibold">{% trans "Usage" %}</h3>
+      <dl class="mt-4 space-y-3">
+        <div>
+          <dt class="text-sm text-base-content/60">{{ terms.offerings }}</dt>
+          <dd class="font-medium">{{ offering_count }}</dd>
+        </div>
+        <div>
+          <dt class="text-sm text-base-content/60">{% blocktrans with categories=terms.categories %}Child {{ categories }}{% endblocktrans %}</dt>
+          <dd class="font-medium">{{ child_count }}</dd>
+        </div>
+      </dl>
+    </section>
+
+    <section class="rounded-lg border border-base-300 bg-base-100 p-5">
+      <h3 class="font-semibold">{% trans "Lifecycle" %}</h3>
+      <p class="mt-2 text-sm text-base-content/70">
+        {% blocktrans with categories=terms.categories|lower %}Archived {{ categories }} stay recoverable in Business Admin. Restored {{ categories }} return as drafts until published again.{% endblocktrans %}
+      </p>
+    </section>
+  </aside>
+</div>
+{% endwith %}
+{% endblock %}

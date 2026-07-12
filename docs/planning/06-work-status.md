@@ -51,6 +51,9 @@ Current focus:
 - Basic catalogue offering lifecycle completed for detail, edit, archive, and restore.
 - Offering edit now validates tenant/facility scope, duplicate codes/SKUs, synchronizes the default variant, and writes update audit events.
 - Offering archive/restore now use POST-only status transitions, hide archived/restored offerings from public visibility, and write lifecycle audit events.
+- Basic catalogue category lifecycle completed for list, create, detail, edit, archive, and restore.
+- Category forms now resolve terminology by facility type, validate parent scope/hierarchy, generate unique slugs, and write lifecycle audit events.
+- Offering create/edit now includes tenant/facility-safe category assignment.
 - Master-spec compliance snapshot added in `09-master-spec-compliance.md`.
 - Master-spec gap register added in `10-master-spec-gap-register.md`.
 - Section-by-section build verification gates added in `11-section-verification-gates.md`.
@@ -60,10 +63,11 @@ Current focus:
 - Facility terminology resolver completion note added in `15-facility-terminology-completion.md`.
 - Catalogue offering admin create completion note added in `16-catalogue-offering-admin-create-completion.md`.
 - Catalogue offering admin lifecycle completion note added in `17-catalogue-offering-admin-lifecycle-completion.md`.
+- Catalogue category admin lifecycle completion note added in `18-catalogue-category-admin-lifecycle-completion.md`.
 
 ## In Progress
 
-- Catalogue category, collection, image/media, option, variant, add-on, price-list, import/export, filtering, pagination, and bulk-management workflows need future production implementation passes.
+- Catalogue collection, image/media, option, variant, add-on, price-list, import/export, filtering, pagination, and bulk-management workflows need future production implementation passes.
 - Marketplace/subscription workflows need the next production implementation pass.
 - Full DNS ownership verification, TLS provisioning, CDN purge, preview-token authorization, and production cookie/session policy need the next domain lifecycle pass.
 - Customer actor login, remaining facility-aware form/workflow/report defaults, billing edge cases, import/export, observability/DR, privacy/legal/audit, AI governance, and database governance are tracked as explicit planning gaps.

@@ -43,6 +43,10 @@
         <p class="font-medium">{{ offering.code }}</p>
       </div>
       <div>
+        <p class="text-sm text-base-content/60">{{ terms.category }}</p>
+        <p class="font-medium">{% if offering.category %}{{ offering.category.name }}{% else %}{% trans "Unassigned" %}{% endif %}</p>
+      </div>
+      <div>
         <p class="text-sm text-base-content/60">{% trans "Price" %}</p>
         <p class="font-medium">{{ offering.currency }} {{ offering.display_price }}</p>
       </div>

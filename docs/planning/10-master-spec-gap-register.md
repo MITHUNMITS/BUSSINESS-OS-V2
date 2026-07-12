@@ -25,7 +25,7 @@ Status meanings:
 | Business Admin UI | Dynamic navigation, status system, forms, mobile tables, empty states, and dashboards need stronger acceptance gates. | Admin screens feel demo-like or inconsistent. | All admin pages must use Business OS components and required UI states. | Planned |
 | Website engine | Editor, publishing, revisions, previews, section contracts, theme tokens, SEO, and module website contributions need deeper gating. | Websites cannot be safely customized or published. | Add publish state machine, preview route, version snapshots, section schema, and entitlement-driven website contributions. | Foundation |
 | Database design | Many future table families were not tracked as intentional deferred modules. | Accidental schema drift or missing extension points. | Track all 17 module table families in roadmap; build only current-scope tables with clear future boundaries. | Planned |
-| Forms and controls | Master spec lists many production forms, but planning only covered broad form behavior. | Missing admin workflows during build. | The basic catalogue offering create/edit/lifecycle form now has schema, tenant/facility validation, audit, and tests; each remaining form must receive the same treatment before it is marked complete. | Foundation |
+| Forms and controls | Master spec lists many production forms, but planning only covered broad form behavior. | Missing admin workflows during build. | The basic catalogue offering and category create/edit/lifecycle forms now have schema, tenant/facility validation, audit, and tests; each remaining form must receive the same treatment before it is marked complete. | Foundation |
 | Availability/holds | Appointment, multi-resource, reservation, and stock hold lifecycle were not fully planned. | Overselling/overbooking and race conditions. | Use transaction boundaries, row locks, expiry, idempotency, capacity formulas, and tests for concurrent attempts. | Foundation |
 | Events/outbox | Internal domain events and transactional outbox were missing from planning. | Integrations, notifications, analytics, and async workflows become unreliable. | Add domain-event model/outbox, idempotent consumers, retry/dead-letter policy. | Planned |
 | Search | Cross-module, entitlement-aware, facility-aware search was too light. | Poor admin/public discovery and data leakage risk. | Define search scopes, indexes, visibility checks, and performance targets. | Planned |
@@ -55,6 +55,7 @@ Status meanings:
 - 2026-07-12: Facility terminology resolver scope implemented for online, retail, warehouse, and office. Business Admin navigation, dashboard labels, product/order page titles, and empty states now resolve through a tenant-scoped facility profile. Facility adaptation remains foundation because full facility-aware forms, module defaults, workflows, reports, website sections, and role dimensions are separate future slices.
 - 2026-07-12: Catalogue offering admin create scope implemented with facility-aware form schema, canonical create route, tenant/facility validation, duplicate code/SKU checks, draft/active status, default variant creation, audit event, and tests. Facility/forms remain foundation because remaining catalogue forms and non-catalogue forms still need the same production treatment.
 - 2026-07-12: Catalogue offering admin lifecycle scope implemented with detail/edit/archive/restore routes, facility-aware edit schema, default-variant synchronization, POST-only lifecycle actions, public-visibility safety, update/archive/restore audit events, and tests. Catalogue remains foundation because categories, collections, media, variants, imports/exports, filtering, pagination, and bulk actions are separate future slices.
+- 2026-07-12: Catalogue category admin lifecycle scope implemented with list/create/detail/edit/archive/restore routes, facility-aware category schema, slug and parent validation, POST-only lifecycle actions, create/update/archive/restore audit events, and category assignment from offering create/edit. Catalogue remains foundation because collections, media, variants, imports/exports, filtering, pagination, and bulk actions are separate future slices.
 
 ## Planning Fix Applied
 
@@ -65,6 +66,7 @@ Status meanings:
 - `15-facility-terminology-completion.md` records the completed facility terminology resolver scope.
 - `16-catalogue-offering-admin-create-completion.md` records the completed facility-aware catalogue offering create scope.
 - `17-catalogue-offering-admin-lifecycle-completion.md` records the completed basic catalogue offering lifecycle scope.
+- `18-catalogue-category-admin-lifecycle-completion.md` records the completed basic catalogue category lifecycle and offering-category assignment scope.
 - `11-section-verification-gates.md` now defines section-by-section build verification.
 - `03-implementation-steps.md`, `05-test-strategy.md`, and `07-release-checklist.md` reference the gate process.
 

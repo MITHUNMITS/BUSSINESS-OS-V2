@@ -180,6 +180,56 @@ Known dev-only warning:
 
 - Pytest still reports the existing local staticfiles warning: `No directory at: /app/staticfiles/`.
 
+## 2026-07-12 Catalogue Category Admin Lifecycle Completion
+
+Affected master-spec sections:
+
+- Section 7: Business Admin UI/UX.
+- Section 11: Forms and controls.
+- Section 16: Security and multi-tenancy.
+- Section 27: Facility model and facility-aware adaptation.
+- Section 29: Catalogue & Offerings.
+- Section 39: Database governance.
+- Section 40: Codex delivery protocol.
+
+Implemented:
+
+- Added facility-aware category form schema and form validation.
+- Added tenant-scoped Business Admin category list, create, detail, edit, archive, and restore routes.
+- Added category list/form/detail templates.
+- Added `create_category`, `update_category`, `archive_category`, and `restore_category` service methods.
+- Added parent validation for organization, facility, archived/deleted parent status, self-parenting, and descendant cycles.
+- Added unique slug generation and duplicate slug validation.
+- Added lifecycle audit events for category create/update/archive/restore.
+- Wired category selection into offering create/edit.
+- Added implementation note `18-catalogue-category-admin-lifecycle-completion.md`.
+
+Commands run:
+
+- `docker compose run --rm web sh docker/entrypoint.sh pytest tests/integration/test_catalogue_category_admin.py -q`: passed, 8 tests.
+- `docker compose run --rm web sh docker/entrypoint.sh ruff check business_os/apps/catalogue/forms.py business_os/apps/catalogue/services.py business_os/apps/catalogue/selectors.py business_os/portals/admin_urls.py business_os/portals/views.py tests/integration/test_catalogue_category_admin.py`: passed.
+- `docker compose run --rm web sh docker/entrypoint.sh pytest tests/integration/test_catalogue_admin_create.py tests/integration/test_catalogue_admin_lifecycle.py tests/integration/test_catalogue_category_admin.py tests/integration/test_facility_terminology.py -q`: passed, 29 tests.
+- `docker compose run --rm web sh docker/entrypoint.sh python manage.py check`: passed.
+- `docker compose run --rm web sh docker/entrypoint.sh python manage.py makemigrations --check --dry-run`: passed with no changes detected.
+- `docker compose run --rm web sh docker/entrypoint.sh python manage.py migrate --check`: passed with no unapplied migrations.
+- `docker compose run --rm web sh docker/entrypoint.sh ruff check .`: passed.
+- `docker compose run --rm web sh docker/entrypoint.sh pytest`: passed, 68 tests.
+
+Test coverage added:
+
+- Business Admin can create a category with auto slug and audit event.
+- Office category pages use service-area terminology.
+- Business Admin can edit category parent/sort/status and audit changes.
+- Duplicate category slug returns a form error and preserves original data.
+- Category archive/restore are POST-only and audited.
+- Business member cannot access another organization's category lifecycle.
+- Parent category must belong to the same organization.
+- Offering create/edit can assign categories.
+
+Known dev-only warning:
+
+- Pytest still reports the existing local staticfiles warning: `No directory at: /app/staticfiles/`.
+
 ## 2026-07-12 Catalogue Offering Admin Lifecycle Completion
 
 Affected master-spec sections:

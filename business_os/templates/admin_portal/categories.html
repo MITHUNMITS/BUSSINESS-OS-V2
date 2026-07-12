@@ -1,0 +1,54 @@
+{% extends "admin_portal/base.html" %}
+{% load i18n %}
+
+{% block page_title %}{{ title }}{% endblock %}
+
+{% block content %}
+{% with terms=facility_profile.terms %}
+<div class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+  <div>
+    <p class="text-sm text-base-content/60">{% trans "Catalogue admin" %}</p>
+    <h3 class="text-lg font-semibold">{{ title }}</h3>
+  </div>
+  <a class="btn btn-primary" href="{{ admin_urls.categories_create }}">{% blocktrans with category=terms.category|lower %}Add {{ category }}{% endblocktrans %}</a>
+</div>
+
+{% if categories %}
+  <div class="rounded-lg border border-base-300 bg-base-100">
+    <div class="border-b border-base-300 p-4">
+      <label class="input input-bordered flex items-center gap-2">
+        <span class="text-base-content/50">{% trans "Search" %}</span>
+        <input class="grow" type="search" aria-label="Search {{ title|lower }}">
+      </label>
+    </div>
+    <div class="overflow-x-auto">
+      <table class="table">
+        <thead><tr><th>{{ terms.category }}</th><th>{% trans "Slug" %}</th><th>{% trans "Parent" %}</th><th>{% trans "Sort" %}</th><th>{% trans "Status" %}</th><th>{% trans "Actions" %}</th></tr></thead>
+        <tbody>
+        {% for category in categories %}
+          <tr>
+            <td><a class="link font-medium" href="{{ admin_urls.categories }}{{ category.id }}/">{{ category.name }}</a></td>
+            <td>{{ category.slug }}</td>
+            <td>{% if category.parent %}{{ category.parent.name }}{% else %}&mdash;{% endif %}</td>
+            <td>{{ category.sort_order }}</td>
+            <td>{% include "components/status_badge.html" with status=category.status %}</td>
+            <td>
+              <div class="flex flex-wrap gap-2">
+                <a class="btn btn-xs btn-outline" href="{{ admin_urls.categories }}{{ category.id }}/">{% trans "View" %}</a>
+                <a class="btn btn-xs btn-ghost" href="{{ admin_urls.categories }}{{ category.id }}/edit/">{% trans "Edit" %}</a>
+              </div>
+            </td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+{% else %}
+  {% blocktrans with categories=terms.categories|lower asvar empty_title %}No {{ categories }} yet{% endblocktrans %}
+  {% blocktrans with categories=terms.categories|lower asvar empty_message %}Create {{ categories }} to organize offerings and make catalogue navigation easier.{% endblocktrans %}
+  {% blocktrans with category=terms.category|lower asvar empty_action %}Add {{ category }}{% endblocktrans %}
+  {% include "components/empty_state.html" with title=empty_title message=empty_message action_label=empty_action action_url=admin_urls.categories_create %}
+{% endif %}
+{% endwith %}
+{% endblock %}

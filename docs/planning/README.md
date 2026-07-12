@@ -19,3 +19,4 @@ This folder tracks the production implementation plan for the modular Business O
 - `15-facility-terminology-completion.md` records the completed facility terminology resolver scope.
 - `16-catalogue-offering-admin-create-completion.md` records the completed facility-aware catalogue offering create scope.
 - `17-catalogue-offering-admin-lifecycle-completion.md` records the completed basic catalogue offering detail/edit/archive/restore scope.
+- `18-catalogue-category-admin-lifecycle-completion.md` records the completed basic catalogue category lifecycle and offering-category assignment scope.

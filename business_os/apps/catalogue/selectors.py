@@ -1,5 +1,23 @@
-from business_os.apps.catalogue.models import Offering
+from business_os.apps.catalogue.models import Category, Offering
 from business_os.apps.core.models import RecordStatus
+
+
+def admin_categories_for_organization(organization):
+    return (
+        Category.objects.for_organization(organization)
+        .exclude(status=RecordStatus.DELETED)
+        .select_related("parent", "facility")
+        .order_by("sort_order", "name")
+    )
+
+
+def admin_category_for_organization(organization, category_id):
+    return (
+        Category.objects.for_organization(organization)
+        .exclude(status=RecordStatus.DELETED)
+        .filter(id=category_id)
+        .select_related("parent", "facility", "created_by", "updated_by")
+    )
 
 
 def admin_offerings_for_organization(organization):
