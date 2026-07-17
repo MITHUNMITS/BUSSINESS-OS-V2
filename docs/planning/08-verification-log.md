@@ -180,6 +180,45 @@ Known dev-only warning:
 
 - Pytest still reports the existing local staticfiles warning: `No directory at: /app/staticfiles/`.
 
+## 2026-07-17 Catalogue Options/Variants Admin Lifecycle Staging
+
+Affected master-spec sections:
+
+- Section 7: Business Admin UI/UX.
+- Section 11: Forms and controls.
+- Section 12: Availability, stock, and reservation.
+- Section 16: Security and multi-tenancy.
+- Section 27: Facility model and facility-aware adaptation.
+- Section 29: Catalogue & Offerings.
+- Section 30: State machines.
+- Section 39: Database governance.
+- Section 40: Codex delivery protocol.
+
+Implemented in working tree, pending runtime verification:
+
+- Added Business Admin forms, services, selectors, routes, templates, and integration tests for catalogue option definitions, option values, explicit offering variants, and variant option-value assignment.
+- Added `catalogue.variants` entitlement enforcement for the new option/variant admin routes.
+- Added tenant/facility validation, duplicate code/value/SKU validation, one-value-per-option validation, POST-only archive/restore transitions, default-variant protection, and audit events for option/value/variant lifecycle changes.
+- Added offering detail UI sections for entitled options and variants.
+
+Commands run:
+
+- `git diff --check`: passed.
+- `docker compose ps`: blocked because Docker Desktop's Linux engine is not running.
+- `python --version`: blocked because `python.exe` cannot be accessed by the system.
+- `docker compose run --rm web sh docker/entrypoint.sh pytest tests/integration/test_catalogue_variant_admin.py -q`: blocked because Docker Desktop's Linux engine is not running.
+
+Current status:
+
+- Code and tests are staged but this slice is not complete under the project completion gate.
+- Required next verification once Docker or Python is available:
+  1. `docker compose run --rm web sh docker/entrypoint.sh python manage.py check`
+  2. `docker compose run --rm web sh docker/entrypoint.sh python manage.py makemigrations --check --dry-run`
+  3. `docker compose run --rm web sh docker/entrypoint.sh python manage.py migrate --check`
+  4. `docker compose run --rm web sh docker/entrypoint.sh ruff check .`
+  5. `docker compose run --rm web sh docker/entrypoint.sh pytest tests/integration/test_catalogue_variant_admin.py -q`
+  6. `docker compose run --rm web sh docker/entrypoint.sh pytest`
+
 ## 2026-07-12 Catalogue Collection Admin Lifecycle Completion
 
 Affected master-spec sections:

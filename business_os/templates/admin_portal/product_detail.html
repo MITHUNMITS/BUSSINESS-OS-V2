@@ -66,6 +66,77 @@
         <p class="mt-2 whitespace-pre-line text-base-content/80">{{ offering.description }}</p>
       </div>
     {% endif %}
+
+    {% if has_variants_entitlement %}
+      <div class="mt-6 border-t border-base-300 pt-5">
+        <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <h4 class="font-semibold">{% trans "Variants" %}</h4>
+          <a class="btn btn-sm btn-primary" href="{{ offering_urls.variants_create }}">{% trans "Add variant" %}</a>
+        </div>
+        {% if variants %}
+          <div class="mt-4 overflow-x-auto">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>{% trans "SKU" %}</th>
+                  <th>{% trans "Title" %}</th>
+                  <th>{% trans "Options" %}</th>
+                  <th>{% trans "Price" %}</th>
+                  <th>{% trans "Status" %}</th>
+                  <th>{% trans "Actions" %}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for variant in variants %}
+                  <tr>
+                    <td class="font-medium">{{ variant.sku }}</td>
+                    <td>
+                      {{ variant.title|default:offering.name }}
+                      {% if variant.is_default %}<span class="badge badge-outline ml-2">{% trans "Default" %}</span>{% endif %}
+                    </td>
+                    <td>
+                      {% if variant.option_values.all %}
+                        <div class="flex flex-wrap gap-1">
+                          {% for value in variant.option_values.all %}
+                            <span class="badge badge-ghost">{{ value.option.name }}: {{ value.label }}</span>
+                          {% endfor %}
+                        </div>
+                      {% else %}
+                        <span class="text-base-content/60">{% trans "No option values" %}</span>
+                      {% endif %}
+                    </td>
+                    <td>{{ offering.currency }} {{ variant.price }}</td>
+                    <td>{% include "components/status_badge.html" with status=variant.status %}</td>
+                    <td>
+                      {% if not variant.is_default %}
+                        <div class="flex flex-wrap gap-2">
+                          <a class="btn btn-xs btn-outline" href="{{ offering_urls.detail }}variants/{{ variant.id }}/edit/">{% trans "Edit" %}</a>
+                          {% if variant.status == "archived" %}
+                            <form method="post" action="{{ offering_urls.detail }}variants/{{ variant.id }}/restore/">
+                              {% csrf_token %}
+                              <button class="btn btn-xs btn-ghost" type="submit">{% trans "Restore" %}</button>
+                            </form>
+                          {% else %}
+                            <form method="post" action="{{ offering_urls.detail }}variants/{{ variant.id }}/archive/">
+                              {% csrf_token %}
+                              <button class="btn btn-xs btn-ghost text-error" type="submit">{% trans "Archive" %}</button>
+                            </form>
+                          {% endif %}
+                        </div>
+                      {% else %}
+                        <span class="text-sm text-base-content/60">{% trans "Managed by offering" %}</span>
+                      {% endif %}
+                    </td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        {% else %}
+          <p class="mt-3 text-sm text-base-content/70">{% trans "No variants are configured yet." %}</p>
+        {% endif %}
+      </div>
+    {% endif %}
   </section>
 
   <aside class="space-y-6">
@@ -86,6 +157,58 @@
         <p class="mt-2 text-sm text-base-content/70">{% trans "No default variant exists yet." %}</p>
       {% endif %}
     </section>
+
+    {% if has_variants_entitlement %}
+      <section class="rounded-lg border border-base-300 bg-base-100 p-5">
+        <div class="flex items-center justify-between gap-3">
+          <h3 class="font-semibold">{% trans "Options" %}</h3>
+          <a class="btn btn-xs btn-primary" href="{{ offering_urls.options_create }}">{% trans "Add option" %}</a>
+        </div>
+        {% if options %}
+          <div class="mt-4 space-y-4">
+            {% for option in options %}
+              <article class="rounded border border-base-300 p-3">
+                <div class="flex items-start justify-between gap-3">
+                  <div>
+                    <p class="font-medium">{{ option.name }}</p>
+                    <p class="text-sm text-base-content/60">{{ option.code }}</p>
+                  </div>
+                  {% include "components/status_badge.html" with status=option.status %}
+                </div>
+                <div class="mt-3 flex flex-wrap gap-2">
+                  <a class="btn btn-xs btn-outline" href="{{ offering_urls.detail }}options/{{ option.id }}/edit/">{% trans "Edit" %}</a>
+                  <a class="btn btn-xs btn-ghost" href="{{ offering_urls.detail }}options/{{ option.id }}/values/new/">{% trans "Add value" %}</a>
+                  {% if option.status == "archived" %}
+                    <form method="post" action="{{ offering_urls.detail }}options/{{ option.id }}/restore/">
+                      {% csrf_token %}
+                      <button class="btn btn-xs btn-ghost" type="submit">{% trans "Restore" %}</button>
+                    </form>
+                  {% else %}
+                    <form method="post" action="{{ offering_urls.detail }}options/{{ option.id }}/archive/">
+                      {% csrf_token %}
+                      <button class="btn btn-xs btn-ghost text-error" type="submit">{% trans "Archive" %}</button>
+                    </form>
+                  {% endif %}
+                </div>
+                {% if option.values.all %}
+                  <div class="mt-3 flex flex-wrap gap-2">
+                    {% for value in option.values.all %}
+                      <a class="badge badge-outline" href="{{ offering_urls.detail }}options/{{ option.id }}/values/{{ value.id }}/edit/">
+                        {{ value.label }}
+                      </a>
+                    {% endfor %}
+                  </div>
+                {% else %}
+                  <p class="mt-3 text-sm text-base-content/70">{% trans "No values yet." %}</p>
+                {% endif %}
+              </article>
+            {% endfor %}
+          </div>
+        {% else %}
+          <p class="mt-3 text-sm text-base-content/70">{% trans "No options are configured yet." %}</p>
+        {% endif %}
+      </section>
+    {% endif %}
 
     <section class="rounded-lg border border-base-300 bg-base-100 p-5">
       <h3 class="font-semibold">{% trans "Collections" %}</h3>

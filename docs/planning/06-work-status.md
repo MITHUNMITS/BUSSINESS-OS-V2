@@ -72,6 +72,7 @@ Current focus:
 
 ## In Progress
 
+- Catalogue options/variants admin lifecycle code and tests are staged for the next production slice, but the slice is not marked complete until Docker/Python verification can run.
 - Catalogue image/media, option, variant, add-on, price-list, import/export, filtering, pagination, drag/drop collection ordering, and bulk-management workflows need future production implementation passes.
 - Marketplace/subscription workflows need the next production implementation pass.
 - Full DNS ownership verification, TLS provisioning, CDN purge, preview-token authorization, and production cookie/session policy need the next domain lifecycle pass.
@@ -82,7 +83,8 @@ Current focus:
 
 ## Blockers
 
-- Local `python.exe` remains inaccessible on this machine, but Docker now provides a working Python/Django runtime.
+- Local `python.exe` remains inaccessible on this machine.
+- Docker Desktop's Linux engine is currently unavailable locally, so Docker-based Django checks and pytest cannot run until Docker is started again.
 - Docker Compose is now configured with container-safe `db` and `redis` hostnames plus a PostgreSQL health check and wait script.
 
 See `08-verification-log.md` for exact command results.

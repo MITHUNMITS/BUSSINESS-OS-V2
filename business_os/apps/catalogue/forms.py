@@ -10,12 +10,21 @@ from django.conf import settings
 from django.db.models import Q
 from django.utils.text import slugify
 
-from business_os.apps.catalogue.models import Category, Collection, Offering, OfferingVariant
+from business_os.apps.catalogue.models import (
+    Category,
+    Collection,
+    Offering,
+    OfferingVariant,
+    OptionDefinition,
+    OptionValue,
+)
 from business_os.apps.core.models import RecordStatus
 from business_os.apps.organizations.facility_profiles import FacilityProfile
 from business_os.apps.organizations.models import Facility, Organization
 
 OFFERING_CODE_PATTERN = re.compile(r"^[A-Z0-9][A-Z0-9._-]{0,79}$")
+OPTION_CODE_PATTERN = re.compile(r"^[a-z0-9][a-z0-9-]{0,79}$")
+COLOR_HEX_PATTERN = re.compile(r"^#[0-9A-Fa-f]{6}$")
 
 
 @dataclass(frozen=True)
@@ -44,6 +53,39 @@ class CategoryFormSchema:
 @dataclass(frozen=True)
 class CollectionFormSchema:
     """Facility-aware schema for the first Business Admin collection form."""
+
+    page_title: str
+    eyebrow: str
+    submit_label: str
+    labels: dict[str, str]
+    help_texts: dict[str, str]
+
+
+@dataclass(frozen=True)
+class OptionFormSchema:
+    """Facility-aware schema for catalogue option definitions."""
+
+    page_title: str
+    eyebrow: str
+    submit_label: str
+    labels: dict[str, str]
+    help_texts: dict[str, str]
+
+
+@dataclass(frozen=True)
+class OptionValueFormSchema:
+    """Facility-aware schema for catalogue option values."""
+
+    page_title: str
+    eyebrow: str
+    submit_label: str
+    labels: dict[str, str]
+    help_texts: dict[str, str]
+
+
+@dataclass(frozen=True)
+class VariantFormSchema:
+    """Facility-aware schema for explicit offering variants."""
 
     page_title: str
     eyebrow: str
@@ -162,6 +204,82 @@ def resolve_category_form_schema(
             "description": f"Optional internal and public description for this {category_lower}.",
             "sort_order": "Lower numbers appear first in admin and public catalogue lists.",
             "status": "Active categories are ready for use; drafts stay internal.",
+        },
+    )
+
+
+def resolve_option_form_schema(*, mode: str = "create") -> OptionFormSchema:
+    is_edit = mode == "edit"
+    return OptionFormSchema(
+        page_title=f"{'Edit' if is_edit else 'Add'} option",
+        eyebrow=f"Options / {'Edit' if is_edit else 'New'}",
+        submit_label=f"{'Save' if is_edit else 'Create'} option",
+        labels={
+            "name": "Option name",
+            "code": "Option code",
+            "sort_order": "Sort order",
+            "status": "Status",
+        },
+        help_texts={
+            "code": "Use a stable lowercase code such as size, color, or material.",
+            "sort_order": "Lower numbers appear first when options are shown.",
+            "status": "Active options can be used for new variants; drafts stay internal.",
+        },
+    )
+
+
+def resolve_option_value_form_schema(
+    *,
+    option: OptionDefinition,
+    mode: str = "create",
+) -> OptionValueFormSchema:
+    is_edit = mode == "edit"
+    return OptionValueFormSchema(
+        page_title=f"{'Edit' if is_edit else 'Add'} {option.name.lower()} value",
+        eyebrow=f"{option.name} / {'Edit' if is_edit else 'New value'}",
+        submit_label=f"{'Save' if is_edit else 'Create'} value",
+        labels={
+            "label": "Value label",
+            "value": "Value code",
+            "color_hex": "Color swatch",
+            "sort_order": "Sort order",
+            "status": "Status",
+        },
+        help_texts={
+            "value": "Use a stable lowercase code for imports, filters, and variant matching.",
+            "color_hex": "Optional hex color such as #111827 for color-style options.",
+            "sort_order": "Lower numbers appear first in selectors and public filters.",
+            "status": "Active values can be assigned to variants; drafts stay internal.",
+        },
+    )
+
+
+def resolve_variant_form_schema(
+    *,
+    facility_profile: FacilityProfile,
+    mode: str = "create",
+) -> VariantFormSchema:
+    offering = facility_profile.terms["offering"]
+    is_edit = mode == "edit"
+    return VariantFormSchema(
+        page_title=f"{'Edit' if is_edit else 'Add'} {offering.lower()} variant",
+        eyebrow=f"Variants / {'Edit' if is_edit else 'New'}",
+        submit_label=f"{'Save' if is_edit else 'Create'} variant",
+        labels={
+            "sku": "Variant SKU",
+            "title": "Variant title",
+            "option_values": "Option values",
+            "price_override": "Price override",
+            "status": "Status",
+            "stock_tracking_enabled": "Track stock for this variant",
+        },
+        help_texts={
+            "sku": "Use a unique SKU across this organization.",
+            "title": "Optional display title, such as Red / Medium.",
+            "option_values": "Choose at most one value for each option.",
+            "price_override": f"Leave blank to use the {offering.lower()} base price.",
+            "status": "Active variants are ready for catalogue and checkout workflows.",
+            "stock_tracking_enabled": "Turn off only for non-stocked services or digital items.",
         },
     )
 
@@ -489,6 +607,265 @@ class CollectionAdminForm(forms.Form):
         self.fields["offerings"].widget.attrs.setdefault("size", 8)
 
 
+class OptionDefinitionAdminForm(forms.Form):
+    name = forms.CharField(max_length=80)
+    code = forms.CharField(max_length=80)
+    sort_order = forms.IntegerField(min_value=0, initial=0)
+    status = forms.ChoiceField(
+        choices=(
+            (RecordStatus.ACTIVE, "Active"),
+            (RecordStatus.DRAFT, "Draft"),
+        ),
+    )
+
+    def __init__(
+        self,
+        *args: Any,
+        organization: Organization,
+        facility_profile: FacilityProfile,
+        instance: OptionDefinition | None = None,
+        **kwargs: Any,
+    ) -> None:
+        self.organization = organization
+        self.facility_profile = facility_profile
+        self.facility = facility_profile.facility
+        self.instance = instance
+        self.schema = resolve_option_form_schema(
+            mode="edit" if instance is not None else "create"
+        )
+        if instance is not None and not args and "initial" not in kwargs:
+            kwargs["initial"] = _initial_for_option(instance)
+        super().__init__(*args, **kwargs)
+
+        self.fields["status"].initial = RecordStatus.ACTIVE
+        for name, label in self.schema.labels.items():
+            self.fields[name].label = label
+        for name, help_text in self.schema.help_texts.items():
+            self.fields[name].help_text = help_text
+        self._apply_widget_classes()
+
+    def clean_code(self) -> str:
+        code = slugify(self.cleaned_data["code"].strip()).lower()
+        if not code or not OPTION_CODE_PATTERN.fullmatch(code):
+            raise forms.ValidationError(
+                "Use lowercase letters, numbers, and hyphens, starting with a letter or number."
+            )
+        conflicts = OptionDefinition.objects.filter(
+            organization=self.organization,
+            code__iexact=code,
+        )
+        if self.instance is not None:
+            conflicts = conflicts.exclude(id=self.instance.id)
+        if conflicts.exists():
+            raise forms.ValidationError("An option with this code already exists.")
+        return code
+
+    def to_service_kwargs(self) -> dict[str, Any]:
+        return {
+            "name": self.cleaned_data["name"].strip(),
+            "code": self.cleaned_data["code"],
+            "sort_order": self.cleaned_data["sort_order"],
+            "status": self.cleaned_data["status"],
+        }
+
+    def _apply_widget_classes(self) -> None:
+        input_class = "input input-bordered w-full"
+        select_class = "select select-bordered w-full"
+        for field_name in ("name", "code", "sort_order", "status"):
+            self.fields[field_name].widget.attrs.setdefault(
+                "class",
+                select_class if field_name == "status" else input_class,
+            )
+
+
+class OptionValueAdminForm(forms.Form):
+    label = forms.CharField(max_length=80)
+    value = forms.CharField(max_length=80)
+    color_hex = forms.CharField(max_length=7, required=False)
+    sort_order = forms.IntegerField(min_value=0, initial=0)
+    status = forms.ChoiceField(
+        choices=(
+            (RecordStatus.ACTIVE, "Active"),
+            (RecordStatus.DRAFT, "Draft"),
+        ),
+    )
+
+    def __init__(
+        self,
+        *args: Any,
+        organization: Organization,
+        facility_profile: FacilityProfile,
+        option: OptionDefinition,
+        instance: OptionValue | None = None,
+        **kwargs: Any,
+    ) -> None:
+        self.organization = organization
+        self.facility_profile = facility_profile
+        self.facility = facility_profile.facility
+        self.option = option
+        self.instance = instance
+        self.schema = resolve_option_value_form_schema(
+            option=option,
+            mode="edit" if instance is not None else "create",
+        )
+        if instance is not None and not args and "initial" not in kwargs:
+            kwargs["initial"] = _initial_for_option_value(instance)
+        super().__init__(*args, **kwargs)
+
+        self.fields["status"].initial = RecordStatus.ACTIVE
+        for name, label in self.schema.labels.items():
+            self.fields[name].label = label
+        for name, help_text in self.schema.help_texts.items():
+            self.fields[name].help_text = help_text
+        self._apply_widget_classes()
+
+    def clean_value(self) -> str:
+        value = slugify(self.cleaned_data["value"].strip()).lower()
+        if not value or not OPTION_CODE_PATTERN.fullmatch(value):
+            raise forms.ValidationError(
+                "Use lowercase letters, numbers, and hyphens, starting with a letter or number."
+            )
+        conflicts = OptionValue.objects.filter(
+            organization=self.organization,
+            option=self.option,
+            value__iexact=value,
+        )
+        if self.instance is not None:
+            conflicts = conflicts.exclude(id=self.instance.id)
+        if conflicts.exists():
+            raise forms.ValidationError("This option already has that value.")
+        return value
+
+    def clean_color_hex(self) -> str:
+        color_hex = self.cleaned_data["color_hex"].strip()
+        if color_hex and not COLOR_HEX_PATTERN.fullmatch(color_hex):
+            raise forms.ValidationError("Use a valid hex color such as #111827.")
+        return color_hex.upper()
+
+    def to_service_kwargs(self) -> dict[str, Any]:
+        return {
+            "label": self.cleaned_data["label"].strip(),
+            "value": self.cleaned_data["value"],
+            "color_hex": self.cleaned_data["color_hex"],
+            "sort_order": self.cleaned_data["sort_order"],
+            "status": self.cleaned_data["status"],
+        }
+
+    def _apply_widget_classes(self) -> None:
+        input_class = "input input-bordered w-full"
+        select_class = "select select-bordered w-full"
+        for field_name in ("label", "value", "color_hex", "sort_order", "status"):
+            self.fields[field_name].widget.attrs.setdefault(
+                "class",
+                select_class if field_name == "status" else input_class,
+            )
+
+
+class OfferingVariantAdminForm(forms.Form):
+    sku = forms.CharField(max_length=80)
+    title = forms.CharField(max_length=180, required=False)
+    option_values = forms.ModelMultipleChoiceField(
+        queryset=OptionValue.objects.none(),
+        required=False,
+    )
+    price_override = forms.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        min_value=Decimal("0.00"),
+        required=False,
+    )
+    status = forms.ChoiceField(
+        choices=(
+            (RecordStatus.ACTIVE, "Active"),
+            (RecordStatus.DRAFT, "Draft"),
+        ),
+    )
+    stock_tracking_enabled = forms.BooleanField(required=False, initial=True)
+
+    def __init__(
+        self,
+        *args: Any,
+        organization: Organization,
+        facility_profile: FacilityProfile,
+        offering: Offering,
+        instance: OfferingVariant | None = None,
+        **kwargs: Any,
+    ) -> None:
+        self.organization = organization
+        self.facility_profile = facility_profile
+        self.facility = offering.facility
+        self.offering = offering
+        self.instance = instance
+        self.schema = resolve_variant_form_schema(
+            facility_profile=facility_profile,
+            mode="edit" if instance is not None else "create",
+        )
+        if instance is not None and not args and "initial" not in kwargs:
+            kwargs["initial"] = _initial_for_variant(instance)
+        super().__init__(*args, **kwargs)
+
+        self.fields["option_values"].queryset = _option_value_queryset_for_facility(
+            organization=organization,
+            facility=self.facility,
+        ).exclude(status__in=[RecordStatus.ARCHIVED, RecordStatus.DELETED])
+        self.fields["status"].initial = RecordStatus.ACTIVE
+        for name, label in self.schema.labels.items():
+            self.fields[name].label = label
+        for name, help_text in self.schema.help_texts.items():
+            self.fields[name].help_text = help_text
+        self._apply_widget_classes()
+
+    def clean_sku(self) -> str:
+        sku = self.cleaned_data["sku"].strip().upper()
+        if not OFFERING_CODE_PATTERN.fullmatch(sku):
+            raise forms.ValidationError(
+                "Use letters, numbers, dots, hyphens, or underscores, "
+                "starting with a letter or number."
+            )
+        conflicts = OfferingVariant.objects.filter(
+            organization=self.organization,
+            sku__iexact=sku,
+        )
+        if self.instance is not None:
+            conflicts = conflicts.exclude(id=self.instance.id)
+        if conflicts.exists():
+            raise forms.ValidationError("A variant with this SKU already exists.")
+        return sku
+
+    def clean_option_values(self):
+        option_values = list(self.cleaned_data["option_values"])
+        option_ids = set()
+        for value in option_values:
+            if value.option_id in option_ids:
+                raise forms.ValidationError("Choose only one value for each option.")
+            option_ids.add(value.option_id)
+        return option_values
+
+    def to_service_kwargs(self) -> dict[str, Any]:
+        return {
+            "sku": self.cleaned_data["sku"],
+            "title": self.cleaned_data["title"].strip(),
+            "option_values": list(self.cleaned_data["option_values"]),
+            "price_override": self.cleaned_data["price_override"],
+            "status": self.cleaned_data["status"],
+            "stock_tracking_enabled": self.cleaned_data["stock_tracking_enabled"],
+        }
+
+    def _apply_widget_classes(self) -> None:
+        input_class = "input input-bordered w-full"
+        select_class = "select select-bordered w-full"
+        multi_select_class = "select select-bordered min-h-36 w-full"
+        checkbox_class = "checkbox checkbox-primary"
+        for field_name in ("sku", "title", "price_override", "status"):
+            self.fields[field_name].widget.attrs.setdefault(
+                "class",
+                select_class if field_name == "status" else input_class,
+            )
+        self.fields["option_values"].widget.attrs.setdefault("class", multi_select_class)
+        self.fields["option_values"].widget.attrs.setdefault("size", 8)
+        self.fields["stock_tracking_enabled"].widget.attrs.setdefault("class", checkbox_class)
+
+
 def _offering_type_for_facility(facility_profile: FacilityProfile) -> str:
     if facility_profile.facility_type == Facility.FacilityType.OFFICE:
         return Offering.OfferingType.SERVICE
@@ -545,6 +922,36 @@ def _initial_for_collection(collection: Collection) -> dict[str, Any]:
     }
 
 
+def _initial_for_option(option: OptionDefinition) -> dict[str, Any]:
+    return {
+        "name": option.name,
+        "code": option.code,
+        "sort_order": option.sort_order,
+        "status": option.status,
+    }
+
+
+def _initial_for_option_value(option_value: OptionValue) -> dict[str, Any]:
+    return {
+        "label": option_value.label,
+        "value": option_value.value,
+        "color_hex": option_value.color_hex,
+        "sort_order": option_value.sort_order,
+        "status": option_value.status,
+    }
+
+
+def _initial_for_variant(variant: OfferingVariant) -> dict[str, Any]:
+    return {
+        "sku": variant.sku,
+        "title": variant.title,
+        "option_values": list(variant.option_values.values_list("id", flat=True)),
+        "price_override": variant.price_override,
+        "status": variant.status,
+        "stock_tracking_enabled": variant.stock_tracking_enabled,
+    }
+
+
 def _category_queryset_for_facility(
     *,
     organization: Organization,
@@ -581,6 +988,25 @@ def _offering_queryset_for_facility(
     if facility is None:
         return queryset.filter(facility__isnull=True).order_by("name")
     return queryset.filter(Q(facility__isnull=True) | Q(facility=facility)).order_by("name")
+
+
+def _option_value_queryset_for_facility(
+    *,
+    organization: Organization,
+    facility: Facility | None,
+):
+    queryset = OptionValue.objects.filter(organization=organization).select_related("option")
+    if facility is None:
+        return queryset.filter(
+            facility__isnull=True,
+            option__facility__isnull=True,
+            option__status=RecordStatus.ACTIVE,
+        ).order_by("option__sort_order", "sort_order", "label")
+    return queryset.filter(
+        Q(facility__isnull=True) | Q(facility=facility),
+        Q(option__facility__isnull=True) | Q(option__facility=facility),
+        option__status=RecordStatus.ACTIVE,
+    ).order_by("option__sort_order", "sort_order", "label")
 
 
 def _category_descendant_ids(category: Category) -> set[Any]:

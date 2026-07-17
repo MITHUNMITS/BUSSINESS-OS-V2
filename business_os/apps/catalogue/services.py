@@ -12,6 +12,8 @@ from business_os.apps.catalogue.models import (
     CollectionItem,
     Offering,
     OfferingVariant,
+    OptionDefinition,
+    OptionValue,
 )
 from business_os.apps.core.models import RecordStatus
 
@@ -400,6 +402,365 @@ def update_collection(
 
 
 @transaction.atomic
+def create_option_definition(
+    *,
+    organization,
+    name: str,
+    code: str,
+    sort_order: int = 0,
+    facility=None,
+    status: str = RecordStatus.ACTIVE,
+    created_by=None,
+) -> OptionDefinition:
+    if facility is not None and facility.organization_id != organization.id:
+        raise PermissionDenied("Facility does not belong to this organization.")
+    payload = _clean_option_payload(
+        organization=organization,
+        name=name,
+        code=code,
+        sort_order=sort_order,
+        status=status,
+    )
+    return OptionDefinition.objects.create(
+        organization=organization,
+        facility=facility,
+        name=payload["name"],
+        code=payload["code"],
+        sort_order=payload["sort_order"],
+        status=payload["status"],
+        created_by=created_by,
+    )
+
+
+@transaction.atomic
+def update_option_definition(
+    *,
+    organization,
+    option_definition,
+    name: str,
+    code: str,
+    sort_order: int = 0,
+    facility=None,
+    status: str = RecordStatus.ACTIVE,
+    updated_by=None,
+) -> OptionDefinition:
+    if option_definition.organization_id != organization.id:
+        raise PermissionDenied("Option does not belong to this organization.")
+    if facility is not None and facility.organization_id != organization.id:
+        raise PermissionDenied("Facility does not belong to this organization.")
+    current = OptionDefinition.objects.select_for_update().get(
+        organization=organization,
+        id=option_definition.id,
+    )
+    payload = _clean_option_payload(
+        organization=organization,
+        name=name,
+        code=code,
+        sort_order=sort_order,
+        status=status,
+        exclude=current,
+    )
+    current.facility = facility
+    current.name = payload["name"]
+    current.code = payload["code"]
+    current.sort_order = payload["sort_order"]
+    current.status = payload["status"]
+    current.updated_by = updated_by
+    current.save(
+        update_fields=[
+            "facility",
+            "name",
+            "code",
+            "sort_order",
+            "status",
+            "updated_by",
+            "updated_at",
+        ]
+    )
+    return current
+
+
+@transaction.atomic
+def create_option_value(
+    *,
+    organization,
+    option_definition,
+    label: str,
+    value: str,
+    color_hex: str = "",
+    sort_order: int = 0,
+    facility=None,
+    status: str = RecordStatus.ACTIVE,
+    created_by=None,
+) -> OptionValue:
+    _validate_option_definition_scope(
+        organization=organization,
+        facility=facility,
+        option_definition=option_definition,
+    )
+    payload = _clean_option_value_payload(
+        organization=organization,
+        option_definition=option_definition,
+        label=label,
+        value=value,
+        color_hex=color_hex,
+        sort_order=sort_order,
+        status=status,
+    )
+    return OptionValue.objects.create(
+        organization=organization,
+        facility=facility,
+        option=option_definition,
+        label=payload["label"],
+        value=payload["value"],
+        color_hex=payload["color_hex"],
+        sort_order=payload["sort_order"],
+        status=payload["status"],
+        created_by=created_by,
+    )
+
+
+@transaction.atomic
+def update_option_value(
+    *,
+    organization,
+    option_value,
+    label: str,
+    value: str,
+    color_hex: str = "",
+    sort_order: int = 0,
+    facility=None,
+    status: str = RecordStatus.ACTIVE,
+    updated_by=None,
+) -> OptionValue:
+    if option_value.organization_id != organization.id:
+        raise PermissionDenied("Option value does not belong to this organization.")
+    current = (
+        OptionValue.objects.select_for_update()
+        .select_related("option")
+        .get(organization=organization, id=option_value.id)
+    )
+    _validate_option_definition_scope(
+        organization=organization,
+        facility=facility,
+        option_definition=current.option,
+    )
+    payload = _clean_option_value_payload(
+        organization=organization,
+        option_definition=current.option,
+        label=label,
+        value=value,
+        color_hex=color_hex,
+        sort_order=sort_order,
+        status=status,
+        exclude=current,
+    )
+    current.facility = facility
+    current.label = payload["label"]
+    current.value = payload["value"]
+    current.color_hex = payload["color_hex"]
+    current.sort_order = payload["sort_order"]
+    current.status = payload["status"]
+    current.updated_by = updated_by
+    current.save(
+        update_fields=[
+            "facility",
+            "label",
+            "value",
+            "color_hex",
+            "sort_order",
+            "status",
+            "updated_by",
+            "updated_at",
+        ]
+    )
+    return current
+
+
+@transaction.atomic
+def create_offering_variant(
+    *,
+    organization,
+    offering,
+    sku: str,
+    title: str = "",
+    option_values=None,
+    price_override=None,
+    stock_tracking_enabled: bool = True,
+    status: str = RecordStatus.ACTIVE,
+    created_by=None,
+) -> OfferingVariant:
+    if offering.organization_id != organization.id:
+        raise PermissionDenied("Offering does not belong to this organization.")
+    selected_values = _validate_variant_option_values(
+        organization=organization,
+        facility=offering.facility,
+        option_values=list(option_values or []),
+    )
+    payload = _clean_variant_payload(
+        organization=organization,
+        sku=sku,
+        title=title,
+        price_override=price_override,
+        stock_tracking_enabled=stock_tracking_enabled,
+        status=status,
+    )
+    variant = OfferingVariant.objects.create(
+        organization=organization,
+        facility=offering.facility,
+        offering=offering,
+        sku=payload["sku"],
+        title=payload["title"],
+        price_override=payload["price_override"],
+        stock_tracking_enabled=payload["stock_tracking_enabled"],
+        status=payload["status"],
+        is_default=False,
+        created_by=created_by,
+    )
+    variant.option_values.set(selected_values)
+    return variant
+
+
+@transaction.atomic
+def update_offering_variant(
+    *,
+    organization,
+    variant,
+    sku: str,
+    title: str = "",
+    option_values=None,
+    price_override=None,
+    stock_tracking_enabled: bool = True,
+    status: str = RecordStatus.ACTIVE,
+    updated_by=None,
+) -> OfferingVariant:
+    if variant.organization_id != organization.id:
+        raise PermissionDenied("Variant does not belong to this organization.")
+    current = (
+        OfferingVariant.objects.select_for_update()
+        .select_related("offering", "facility")
+        .get(organization=organization, id=variant.id)
+    )
+    if current.is_default:
+        raise ValueError("The default variant is managed from the offering form.")
+    selected_values = _validate_variant_option_values(
+        organization=organization,
+        facility=current.offering.facility,
+        option_values=list(option_values or []),
+    )
+    payload = _clean_variant_payload(
+        organization=organization,
+        sku=sku,
+        title=title,
+        price_override=price_override,
+        stock_tracking_enabled=stock_tracking_enabled,
+        status=status,
+        exclude=current,
+    )
+    current.facility = current.offering.facility
+    current.sku = payload["sku"]
+    current.title = payload["title"]
+    current.price_override = payload["price_override"]
+    current.stock_tracking_enabled = payload["stock_tracking_enabled"]
+    current.status = payload["status"]
+    current.updated_by = updated_by
+    current.save(
+        update_fields=[
+            "facility",
+            "sku",
+            "title",
+            "price_override",
+            "stock_tracking_enabled",
+            "status",
+            "updated_by",
+            "updated_at",
+        ]
+    )
+    current.option_values.set(selected_values)
+    return current
+
+
+@transaction.atomic
+def archive_option_definition(
+    *,
+    organization,
+    option_definition,
+    archived_by=None,
+) -> OptionDefinition:
+    current = _locked_option_for_organization(
+        organization=organization,
+        option_definition=option_definition,
+    )
+    current.status = RecordStatus.ARCHIVED
+    current.updated_by = archived_by
+    current.save(update_fields=["status", "updated_by", "updated_at"])
+    return current
+
+
+@transaction.atomic
+def restore_option_definition(
+    *,
+    organization,
+    option_definition,
+    restored_by=None,
+) -> OptionDefinition:
+    current = _locked_option_for_organization(
+        organization=organization,
+        option_definition=option_definition,
+    )
+    current.status = RecordStatus.DRAFT
+    current.updated_by = restored_by
+    current.save(update_fields=["status", "updated_by", "updated_at"])
+    return current
+
+
+@transaction.atomic
+def archive_option_value(*, organization, option_value, archived_by=None) -> OptionValue:
+    current = _locked_option_value_for_organization(
+        organization=organization,
+        option_value=option_value,
+    )
+    current.status = RecordStatus.ARCHIVED
+    current.updated_by = archived_by
+    current.save(update_fields=["status", "updated_by", "updated_at"])
+    return current
+
+
+@transaction.atomic
+def restore_option_value(*, organization, option_value, restored_by=None) -> OptionValue:
+    current = _locked_option_value_for_organization(
+        organization=organization,
+        option_value=option_value,
+    )
+    current.status = RecordStatus.DRAFT
+    current.updated_by = restored_by
+    current.save(update_fields=["status", "updated_by", "updated_at"])
+    return current
+
+
+@transaction.atomic
+def archive_offering_variant(*, organization, variant, archived_by=None) -> OfferingVariant:
+    current = _locked_variant_for_organization(organization=organization, variant=variant)
+    if current.is_default:
+        raise ValueError("The default variant cannot be archived.")
+    current.status = RecordStatus.ARCHIVED
+    current.updated_by = archived_by
+    current.save(update_fields=["status", "updated_by", "updated_at"])
+    return current
+
+
+@transaction.atomic
+def restore_offering_variant(*, organization, variant, restored_by=None) -> OfferingVariant:
+    current = _locked_variant_for_organization(organization=organization, variant=variant)
+    if current.is_default:
+        raise ValueError("The default variant is restored through the offering lifecycle.")
+    current.status = RecordStatus.DRAFT
+    current.updated_by = restored_by
+    current.save(update_fields=["status", "updated_by", "updated_at"])
+    return current
+
+
+@transaction.atomic
 def archive_collection(*, organization, collection, archived_by=None) -> Collection:
     current = _locked_collection_for_organization(
         organization=organization,
@@ -593,6 +954,125 @@ def _clean_collection_payload(
     }
 
 
+def _clean_option_payload(
+    *,
+    organization,
+    name: str,
+    code: str,
+    sort_order: int,
+    status: str,
+    exclude=None,
+) -> dict[str, object]:
+    cleaned_name = name.strip()
+    cleaned_code = code.strip().lower()
+    if not cleaned_name:
+        raise ValueError("Option name is required.")
+    if not cleaned_code:
+        raise ValueError("Option code is required.")
+    try:
+        cleaned_sort_order = int(sort_order)
+    except (TypeError, ValueError) as exc:
+        raise ValueError("Sort order must be a number.") from exc
+    if cleaned_sort_order < 0:
+        raise ValueError("Sort order cannot be negative.")
+    if status not in {RecordStatus.ACTIVE, RecordStatus.DRAFT}:
+        raise ValueError("Unsupported option status.")
+    conflicts = OptionDefinition.objects.filter(
+        organization=organization,
+        code__iexact=cleaned_code,
+    )
+    if exclude is not None:
+        conflicts = conflicts.exclude(id=exclude.id)
+    if conflicts.exists():
+        raise ValueError("An option with this code already exists.")
+    return {
+        "name": cleaned_name,
+        "code": cleaned_code,
+        "sort_order": cleaned_sort_order,
+        "status": status,
+    }
+
+
+def _clean_option_value_payload(
+    *,
+    organization,
+    option_definition,
+    label: str,
+    value: str,
+    color_hex: str,
+    sort_order: int,
+    status: str,
+    exclude=None,
+) -> dict[str, object]:
+    cleaned_label = label.strip()
+    cleaned_value = value.strip().lower()
+    cleaned_color = color_hex.strip().upper()
+    if not cleaned_label:
+        raise ValueError("Option value label is required.")
+    if not cleaned_value:
+        raise ValueError("Option value code is required.")
+    try:
+        cleaned_sort_order = int(sort_order)
+    except (TypeError, ValueError) as exc:
+        raise ValueError("Sort order must be a number.") from exc
+    if cleaned_sort_order < 0:
+        raise ValueError("Sort order cannot be negative.")
+    if status not in {RecordStatus.ACTIVE, RecordStatus.DRAFT}:
+        raise ValueError("Unsupported option value status.")
+    conflicts = OptionValue.objects.filter(
+        organization=organization,
+        option=option_definition,
+        value__iexact=cleaned_value,
+    )
+    if exclude is not None:
+        conflicts = conflicts.exclude(id=exclude.id)
+    if conflicts.exists():
+        raise ValueError("This option already has that value.")
+    return {
+        "label": cleaned_label,
+        "value": cleaned_value,
+        "color_hex": cleaned_color,
+        "sort_order": cleaned_sort_order,
+        "status": status,
+    }
+
+
+def _clean_variant_payload(
+    *,
+    organization,
+    sku: str,
+    title: str,
+    price_override,
+    stock_tracking_enabled: bool,
+    status: str,
+    exclude=None,
+) -> dict[str, object]:
+    cleaned_sku = sku.strip().upper()
+    cleaned_title = title.strip()
+    if not cleaned_sku:
+        raise ValueError("Variant SKU is required.")
+    if status not in {RecordStatus.ACTIVE, RecordStatus.DRAFT}:
+        raise ValueError("Unsupported variant status.")
+    cleaned_price = Decimal(price_override) if price_override not in {None, ""} else None
+    if cleaned_price is not None and cleaned_price < Decimal("0.00"):
+        raise ValueError("Variant price override cannot be negative.")
+    conflicts = OfferingVariant.objects.filter(
+        organization=organization,
+        sku__iexact=cleaned_sku,
+    )
+    if exclude is not None:
+        conflicts = conflicts.exclude(id=exclude.id)
+    if conflicts.exists():
+        raise ValueError("A variant with this SKU already exists.")
+    return {
+        "sku": cleaned_sku,
+        "title": cleaned_title,
+        "price_override": cleaned_price,
+        "stock_tracking_enabled": bool(stock_tracking_enabled),
+        "status": status,
+    }
+
+
 def _validate_category_scope(*, organization, facility, category) -> None:
     if category is None:
         return
@@ -634,6 +1114,43 @@ def _validate_collection_offerings(*, organization, facility, offerings) -> None
             raise ValueError("Archived offerings cannot be assigned to collections.")
 
 
+def _validate_option_definition_scope(*, organization, facility, option_definition) -> None:
+    if option_definition.organization_id != organization.id:
+        raise PermissionDenied("Option does not belong to this organization.")
+    if facility is not None and option_definition.facility_id not in {None, facility.id}:
+        raise PermissionDenied("Option does not belong to this facility.")
+    if option_definition.status in {RecordStatus.ARCHIVED, RecordStatus.DELETED}:
+        raise ValueError("Archived options cannot be used for active variant workflows.")
+
+
+def _validate_variant_option_values(*, organization, facility, option_values) -> list:
+    selected_values = []
+    seen_value_ids = set()
+    seen_option_ids = set()
+    for option_value in option_values:
+        if option_value.id in seen_value_ids:
+            continue
+        seen_value_ids.add(option_value.id)
+        if option_value.organization_id != organization.id:
+            raise PermissionDenied("Option value does not belong to this organization.")
+        if facility is not None and option_value.facility_id not in {None, facility.id}:
+            raise PermissionDenied("Option value does not belong to this facility.")
+        option = option_value.option
+        if option.organization_id != organization.id:
+            raise PermissionDenied("Option does not belong to this organization.")
+        if facility is not None and option.facility_id not in {None, facility.id}:
+            raise PermissionDenied("Option does not belong to this facility.")
+        if option.status in {RecordStatus.ARCHIVED, RecordStatus.DELETED}:
+            raise ValueError("Archived options cannot be assigned to variants.")
+        if option_value.status in {RecordStatus.ARCHIVED, RecordStatus.DELETED}:
+            raise ValueError("Archived option values cannot be assigned to variants.")
+        if option.id in seen_option_ids:
+            raise ValueError("Choose only one value for each option.")
+        seen_option_ids.add(option.id)
+        selected_values.append(option_value)
+    return selected_values
+
+
 def _locked_offering_for_organization(*, organization, offering) -> Offering:
     if offering.organization_id != organization.id:
         raise PermissionDenied("Offering does not belong to this organization.")
@@ -652,6 +1169,35 @@ def _locked_collection_for_organization(*, organization, collection) -> Collecti
     return Collection.objects.select_for_update().get(
         organization=organization,
         id=collection.id,
+    )
+
+
+def _locked_option_for_organization(*, organization, option_definition) -> OptionDefinition:
+    if option_definition.organization_id != organization.id:
+        raise PermissionDenied("Option does not belong to this organization.")
+    return OptionDefinition.objects.select_for_update().get(
+        organization=organization,
+        id=option_definition.id,
+    )
+
+
+def _locked_option_value_for_organization(*, organization, option_value) -> OptionValue:
+    if option_value.organization_id != organization.id:
+        raise PermissionDenied("Option value does not belong to this organization.")
+    return (
+        OptionValue.objects.select_for_update()
+        .select_related("option")
+        .get(organization=organization, id=option_value.id)
+    )
+
+
+def _locked_variant_for_organization(*, organization, variant) -> OfferingVariant:
+    if variant.organization_id != organization.id:
+        raise PermissionDenied("Variant does not belong to this organization.")
+    return (
+        OfferingVariant.objects.select_for_update()
+        .select_related("offering")
+        .get(organization=organization, id=variant.id)
     )
 
 

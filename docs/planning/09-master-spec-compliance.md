@@ -188,7 +188,7 @@ Pending:
 
 ## Ecommerce First Slice
 
-Status: **foundation plus basic offering/category/collection admin lifecycle implemented and verified**
+Status: **foundation plus basic offering/category/collection admin lifecycle implemented and verified; options/variants admin lifecycle staged pending verification**
 
 - Catalogue, variants, inventory-lite, cart, checkout, order, payment intent, and stock reservation foundations exist.
 - Stock reservation test passes.
@@ -197,10 +197,12 @@ Status: **foundation plus basic offering/category/collection admin lifecycle imp
 - Business Admin can list, create, view, edit, archive, and restore basic catalogue categories with facility-aware labels, tenant/facility validation, parent hierarchy validation, canonical route wiring, and audit.
 - Offerings can be assigned to categories from the Business Admin create/edit flow.
 - Business Admin can list, create, view, edit, archive, and restore basic catalogue collections with facility-aware membership labels, tenant/facility validation, offering membership synchronization, canonical route wiring, and audit.
+- Business Admin option/value/explicit-variant lifecycle code and tests are staged in the working tree with tenant/facility validation, `catalogue.variants` entitlement checks, duplicate validation, option-value assignment, default-variant protection, and audit events. This staged slice is not marked verified until Docker/Python checks run.
 
 Pending:
 
-- Production-grade admin CRUD forms for images/media, options, variants, add-ons, price lists, public catalogue pages, and richer catalogue lifecycle/bulk-management flows.
+- Runtime verification for the staged options/variants admin lifecycle.
+- Production-grade admin CRUD forms for images/media, add-ons, price lists, public catalogue pages, and richer catalogue lifecycle/bulk-management flows.
 - Public cart and checkout pages.
 - Shipping/tax rule UI and final checkout totals.
 - Order management workflow UI.
@@ -217,6 +219,10 @@ Passing:
 - Ruff.
 - Pytest: 76 tests.
 - Health, database health, generated website, and host-isolation smoke checks.
+
+Current local blocker:
+
+- On 2026-07-17, Docker Desktop's Linux engine was unavailable and local `python.exe` was inaccessible, so the staged options/variants lifecycle checks could not run.
 
 Known dev-only warning:
 
